@@ -56,7 +56,7 @@
     <table class="table modern-table">
         <thead>
             <tr>
-                <!-- <th>Asset ID</th> -->
+                <th>Asset No</th>
                 <th>Serial No</th>
                 <th>Purchase Date</th>
                 <th>Purchase Cost</th>
@@ -67,7 +67,6 @@
                 <th>Description</th>
                 <th>Category</th>
                 <th>Department</th>
-                <!-- <th>Status</th> -->
                 <th>Assigned To</th>
                 <th>Actions</th>
             </tr>
@@ -75,7 +74,7 @@
         <tbody>
             {% for asset in assets %}
             <tr>
-                <!-- <td class="asset-id">#{{ asset.id }}</td> -->
+                <td>{{ asset.asset_no }}</td>
                 <td>{{ asset.serial_no|default:"—" }}</td>
                 <td>{{ asset.purchase_date|date:"M d, Y" }}</td>
                 <td>{{ asset.purchase_cost|default:"—" }}</td>

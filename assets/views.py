@@ -1,4 +1,3 @@
-
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -20,6 +19,8 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from django.db.models import Count
 from io import BytesIO
 from datetime import datetime
+from django.db import transaction
+from django.db.utils import IntegrityError
 
 # landig page
 def landing_page(request):
@@ -89,11 +90,53 @@ def asset_create(request):
     if request.method == 'POST':
         form = AssetForm(request.POST, request.FILES)
         if form.is_valid():
-            asset = form.save()
-            messages.success(request, 'Asset created successfully!')
-            return redirect('asset_detail', pk=asset.pk)
+            try:
+                with transaction.atomic():
+                    asset = form.save(commit=False)
+                    # Ensure department and category are set before generating asset number
+                    if not asset.department or not asset.category:
+                        messages.error(request, 'Department and Category are required to generate asset number.')
+                        return render(request, 'assets/asset_form.html', {'form': form, 'action': 'Create'})
+                    
+                    # Get the last asset number for this department and category
+                    last_asset = Asset.objects.filter(
+                        department=asset.department,
+                        category=asset.category
+                    ).order_by('-asset_no').first()
+
+                    if last_asset and last_asset.asset_no:
+                        try:
+                            # Extract the number from the last asset number
+                            last_number = int(last_asset.asset_no.split('-')[-1])
+                            new_number = last_number + 1
+                        except (ValueError, IndexError):
+                            new_number = 1
+                    else:
+                        new_number = 1
+
+                    # Format: [department]-[category]-KOTDA-[number]
+                    dept_prefix = asset.department.name[:3].upper()
+                    cat_prefix = asset.category[:3].upper()
+                    asset.asset_no = f"{dept_prefix}-{cat_prefix}-KOTDA-{new_number:04d}"
+                    
+                    # Verify this number doesn't exist
+                    while Asset.objects.filter(asset_no=asset.asset_no).exists():
+                        new_number += 1
+                        asset.asset_no = f"{dept_prefix}-{cat_prefix}-KOTDA-{new_number:04d}"
+                    
+                    asset.save()
+                messages.success(request, 'Asset created successfully!')
+                return redirect('asset_detail', pk=asset.pk)
+            except IntegrityError as e:
+                messages.error(request, f'Error creating asset: {str(e)}')
+            except ValueError as e:
+                messages.error(request, str(e))
+            except Exception as e:
+                messages.error(request, f'Unexpected error: {str(e)}')
         else:
-            messages.error(request, 'Please correct the errors below.')
+            for field, errors in form.errors.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
     else:
         form = AssetForm()
     return render(request, 'assets/asset_form.html', {'form': form, 'action': 'Create'})
