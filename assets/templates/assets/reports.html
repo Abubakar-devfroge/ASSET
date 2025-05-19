@@ -1,0 +1,95 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>Reports</h1>
+        <p class="text-muted">Generate and download asset management reports</p>
+    </div>
+    <div class="header-actions">
+        <a href="{% url 'download_report' %}" class="btn btn-primary">
+            <i class="fas fa-download"></i> Download PDF Report
+        </a>
+    </div>
+</div>
+
+<div class="reports-container">
+    <!-- Asset Distribution -->
+    <div class="content-card">
+        <div class="card-header">
+            <div class="header-title">
+                <i class="fas fa-chart-pie"></i>
+                <h2>Asset Distribution</h2>
+            </div>
+        </div>
+        <div class="report-content">
+            <div class="report-grid">
+                <!-- Category Distribution -->
+                <div class="report-section">
+                    <h3>By Category</h3>
+                    <div class="distribution-list">
+                        {% for item in assets_by_category %}
+                        <div class="distribution-item">
+                            <div class="item-label">{{ item.category }}</div>
+                            <div class="item-count">{{ item.count }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Status Distribution -->
+                <div class="report-section">
+                    <h3>By Status</h3>
+                    <div class="distribution-list">
+                        {% for item in assets_by_status %}
+                        <div class="distribution-item">
+                            <div class="item-label">{{ item.status }}</div>
+                            <div class="item-count">{{ item.count }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Department Distribution -->
+                <div class="report-section">
+                    <h3>By Department</h3>
+                    <div class="distribution-list">
+                        {% for item in assets_by_department %}
+                        <div class="distribution-item">
+                            <div class="item-label">{{ item.department__name }}</div>
+                            <div class="item-count">{{ item.count }}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Request Summary -->
+    <div class="content-card">
+        <div class="card-header">
+            <div class="header-title">
+                <i class="fas fa-clipboard-list"></i>
+                <h2>Request Summary</h2>
+            </div>
+        </div>
+        <div class="report-content">
+            <div class="summary-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Pending Requests</div>
+                    <div class="stat-value">{{ pending_requests }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Approved Requests</div>
+                    <div class="stat-value">{{ approved_requests }}</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Rejected Requests</div>
+                    <div class="stat-value">{{ rejected_requests }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

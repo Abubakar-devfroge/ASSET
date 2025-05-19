@@ -1,0 +1,276 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>GridSet - Home</title>
+       <link rel="icon" type="image/svg+xml" href="{% static '/img/konza.png' %}" />
+    <link href="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.css" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Montserrat', sans-serif; }
+        .section-title {
+            font-family: 'Montserrat', 'Inter', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .hashnode-shadow {
+            box-shadow: 0 2px 16px 0 rgba(0,0,0,0.06), 0 1.5px 6px 0 rgba(0,0,0,0.03);
+        }
+        .btn-green {
+            background-color: #005B4F !important;
+            color: #fff !important;
+            border: none !important;
+        }
+        .btn-green:hover {
+            background-color: #00453c !important;
+            color: #fff !important;
+        }
+    </style>
+</head>
+<body class="bg-[#f7f9fa] text-gray-900">
+    <!-- Navbar (Hashnode style) -->
+    <nav class="bg-white/80 backdrop-blur border-b border-gray-200 sticky top-0 z-50 shadow-[0_2px_16px_0_rgba(0,0,0,0.04)]">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+            <div class="flex items-center gap-3">
+                <img src="{% static 'images/gridlogo.png' %}" alt="GridSet Logo" class="h-10 w-10 rounded-full shadow-md">
+                <span class="text-2xl font-bold text-blue-700 tracking-tight" style="font-family: 'Montserrat', 'Inter', sans-serif;">Grid<span class="text-gray-900">Set</span></span>
+            </div>
+            <div class="flex gap-2 items-center">
+                <a href="/login/" class="px-5 py-2 rounded-full font-semibold border-2 border-blue-600 text-blue-700 bg-white shadow transition hover:bg-blue-700 hover:text-white">Login</a>
+                <!-- <a href="/register/" class="px-5 py-2 rounded-full font-semibold shadow transition bg-gradient-to-r from-blue-700 to-blue-400 text-white hover:from-blue-400 hover:to-blue-700 border border-blue-700">Get Started</a> -->
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="bg-gradient-to-br from-[#e0e7ff] to-[#f7f9fa] py-24 relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none">
+            <svg width="100%" height="100%" class="opacity-10" xmlns="http://www.w3.org/2000/svg"><circle cx="60%" cy="40%" r="320" fill="#3b82f6" /></svg>
+        </div>
+        <div class="max-w-5xl mx-auto px-4 flex flex-col md:flex-row items-center gap-12 relative z-10">
+            <div class="flex-1">
+                <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6 text-gray-900 section-title">Empower Your Enterprise Asset Management with <span class="text-blue-700">GridSet</span></h1>
+                <p class="text-xl md:text-2xl text-gray-700 mb-8">Modern, scalable, and intuitive platform for managing assets, requests, and workflows. Built for teams, trusted by enterprises.</p>
+                <!-- <div class="flex gap-4">
+                    <a href="/register/" class="px-7 py-3 rounded-full font-semibold shadow transition bg-gradient-to-r from-blue-700 to-gray-900 text-white hover:from-gray-900 hover:to-blue-700 text-lg">Get Started Free</a>
+                    <a href="#features" class="px-7 py-3 rounded-full font-semibold border-2 border-blue-600 text-blue-700 bg-white shadow transition hover:bg-blue-700 hover:text-white text-lg">See Features</a>
+                </div> -->
+            </div>
+            <div class="flex-1 flex justify-center">
+                <img src="{% static 'images/enterprise-hero.svg' %}" alt="Enterprise Asset Management" class="w-full max-w-md rounded-xl shadow-xl">
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section id="features" class="py-24 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 section-title">Why Choose GridSet?</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-10">
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow hover:shadow-lg transition flex flex-col items-center text-gray-900">
+                    <div class="mb-6 flex justify-center">
+                        <span class="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-white text-[#005B4F] shadow"><svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 1.343-3 3s1.343 3 3 3 3-1.343 3-3-1.343-3-3-3zm0 0V4m0 8v8m8-8a8 8 0 11-16 0 8 8 0 0116 0z"/></svg></span>
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-center">Real-Time Asset Tracking</h3>
+                    <p class="text-gray-700 text-center text-base md:text-lg">Monitor, update, and manage all your assets in real time with powerful dashboards and analytics.</p>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow hover:shadow-lg transition flex flex-col items-center text-gray-900">
+                    <div class="mb-6 flex justify-center">
+                        <span class="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-white text-[#005B4F] shadow"><svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2a4 4 0 014-4h2a4 4 0 014 4v2M7 17v-2a4 4 0 014-4h2a4 4 0 014 4v2"/></svg></span>
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-center">Team Collaboration</h3>
+                    <p class="text-gray-700 text-center text-base md:text-lg">Empower your team with seamless collaboration, approvals, and notifications for every asset request.</p>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow hover:shadow-lg transition flex flex-col items-center text-gray-900">
+                    <div class="mb-6 flex justify-center">
+                        <span class="inline-flex items-center justify-center w-14 h-14 md:w-16 md:h-16 rounded-full bg-white text-[#005B4F] shadow"><svg class="w-8 h-8" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v4a1 1 0 001 1h3m10-5v4a1 1 0 001 1h3m-7 4v4m0 0H7m5 0h5"/></svg></span>
+                    </div>
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3 text-center">Enterprise-Grade Security</h3>
+                    <p class="text-gray-700 text-center text-base md:text-lg">Your data is protected with industry-leading security, SSO, and compliance features.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Enterprise Section -->
+    <section id="enterprise" class="py-24 bg-gradient-to-br from-[#e0e7ff] to-[#f7f9fa]">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16">
+            <div class="flex-1">
+                <h2 class="text-4xl md:text-5xl font-bold mb-8 section-title">Built for Modern Enterprises</h2>
+                <p class="text-xl text-gray-700 mb-8">GridSet is trusted by organizations of all sizes to manage assets, automate workflows, and drive productivity. Our platform is designed for scalability, reliability, and ease of use.</p>
+                <ul class="space-y-4 mb-10">
+                    <li class="flex items-center gap-3"><span class="text-blue-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span> Customizable Workflows</li>
+                    <li class="flex items-center gap-3"><span class="text-blue-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span> Advanced Reporting & Analytics</li>
+                    <li class="flex items-center gap-3"><span class="text-blue-700"><svg class="w-6 h-6" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg></span> Integrations & API Access</li>
+                </ul>
+                <a href="/register/" class="px-5 py-2 rounded-full font-semibold shadow transition bg-gradient-to-r from-blue-700 to-blue-400 text-white hover:from-blue-400 hover:to-blue-700 border border-blue-700">Request a Demo</a>
+            </div>
+            <div class="flex-1 flex justify-center">
+                <img src="{% static 'images/enterprise-dashboard.svg' %}" alt="Enterprise Dashboard" class="w-full max-w-md rounded-xl shadow-xl">
+            </div>
+        </div>
+    </section>
+
+    <!-- Do More with GridSet AI Section (Hashnode AI style) -->
+    <section class="py-24 bg-gradient-to-br from-[#f7f9fa] to-[#e0e7ff] relative overflow-hidden">
+        <div class="absolute inset-0 pointer-events-none">
+            <svg width="100%" height="100%" class="opacity-10" xmlns="http://www.w3.org/2000/svg"><circle cx="30%" cy="70%" r="220" fill="#3b82f6" /></svg>
+        </div>
+        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row items-center gap-16 relative z-10">
+            <div class="flex-1 flex flex-col justify-center">
+                <span class="inline-block bg-gradient-to-r from-blue-200 to-blue-100 text-blue-700 font-semibold px-4 py-1 rounded-full mb-4 text-sm shadow">GridSet AI</span>
+                <h2 class="text-4xl md:text-5xl font-bold mb-6 section-title">Do more with <span class="text-blue-700">GridSet AI</span></h2>
+                <p class="text-xl text-gray-700 mb-8">Leverage AI-powered insights, smart recommendations, and automation to supercharge your asset management and decision-making. Let GridSet AI handle the heavy lifting so you can focus on what matters most.</p>
+                <div class="flex gap-4">
+                    <a href="/register/" class="px-6 py-3 rounded-full font-semibold shadow transition bg-gradient-to-r from-blue-700 to-blue-400 text-white hover:from-blue-400 hover:to-blue-700 border border-blue-700 text-lg">Try GridSet AI</a>
+                    <a href="#" class="px-6 py-3 rounded-full font-semibold border-2 border-blue-600 text-blue-700 bg-white shadow transition hover:bg-blue-700 hover:text-white text-lg">Learn More</a>
+                </div>
+            </div>
+            <div class="flex-1 flex justify-center">
+                <img src="{% static 'images/ai-illustration.svg' %}" alt="GridSet AI" class="w-full max-w-md rounded-3xl shadow-xl">
+            </div>
+        </div>
+    </section>
+
+    <!-- Pricing Section -->
+    <section id="pricing" class="py-24 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 section-title">Simple, Transparent Pricing</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-10">
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow hover:shadow-lg transition flex flex-col items-center min-h-[420px] text-gray-900">
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3">Starter</h3>
+                    <p class="text-3xl md:text-4xl font-bold text-[#005B4F] mb-4">Free</p>
+                    <ul class="mb-8 space-y-2 text-gray-700 text-base md:text-lg">
+                        <li>Up to 10 assets</li>
+                        <li>Basic reporting</li>
+                        <li>Email support</li>
+                    </ul>
+                    <a href="/register/" class="px-5 py-2 rounded-lg font-semibold shadow transition w-full text-center btn-green">Get Started</a>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow-lg flex flex-col items-center border-4 border-white min-h-[460px] relative text-gray-900">
+                    <span class="absolute -top-5 left-1/2 -translate-x-1/2 bg-white text-[#005B4F] text-xs font-bold px-4 py-1 rounded-full shadow">Most Popular</span>
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3">Pro</h3>
+                    <p class="text-3xl md:text-4xl font-bold mb-4">$49<span class="text-base font-medium">/mo</span></p>
+                    <ul class="mb-8 space-y-2 text-gray-700 text-base md:text-lg">
+                        <li>Unlimited assets</li>
+                        <li>Advanced analytics</li>
+                        <li>Priority support</li>
+                    </ul>
+                    <a href="/register/" class="px-5 py-2 rounded-full font-semibold border-2 w-full text-center btn-green">Start Pro</a>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-2xl p-8 md:p-10 shadow hover:shadow-lg transition flex flex-col items-center min-h-[420px] text-gray-900">
+                    <h3 class="text-xl md:text-2xl font-semibold mb-3">Enterprise</h3>
+                    <p class="text-3xl md:text-4xl font-bold text-[#005B4F] mb-4">Custom</p>
+                    <ul class="mb-8 space-y-2 text-gray-700 text-base md:text-lg">
+                        <li>Custom integrations</li>
+                        <li>Dedicated manager</li>
+                        <li>24/7 support</li>
+                    </ul>
+                    <a href="/register/" class="px-5 py-2 rounded-lg font-semibold shadow transition w-full text-center btn-green">Contact Sales</a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Blog Section (Hashnode style) -->
+    <section id="blog" class="py-24 bg-white">
+        <div class="max-w-6xl mx-auto px-4">
+            <h2 class="text-4xl md:text-5xl font-bold text-center mb-16 section-title">From Our Blog</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8 md:gap-10">
+                <div class="bg-[#f1f5f9] rounded-3xl shadow p-0 hover:shadow-lg transition flex flex-col overflow-hidden border border-white text-gray-900">
+                    <img src="{% static 'images/blog1.jpg' %}" alt="Blog 1" class="rounded-t-3xl h-48 md:h-56 w-full object-cover">
+                    <div class="p-6 md:p-8 flex flex-col flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <img src="{% static 'images/avatar1.png' %}" alt="Author" class="w-8 h-8 rounded-full border-2 border-white shadow">
+                            <span class="text-xs font-semibold text-gray-900">Jane Doe</span>
+                            <span class="text-xs text-gray-400">· May 2025</span>
+                        </div>
+                        <span class="text-xs font-semibold text-[#005B4F] mb-2 uppercase tracking-wider">AI & Automation</span>
+                        <h3 class="text-lg md:text-2xl font-semibold mb-3">5 Ways to Optimize Asset Management</h3>
+                        <p class="text-gray-700 mb-6 text-sm md:text-base">Discover strategies to streamline your asset management process and boost productivity.</p>
+                        <div class="flex gap-2 mb-4">
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">AI</span>
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">Productivity</span>
+                        </div>
+                        <a href="#" class="text-[#005B4F] font-semibold hover:underline mt-auto">Read More</a>
+                    </div>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-3xl shadow p-0 hover:shadow-lg transition flex flex-col overflow-hidden border border-white text-gray-900">
+                    <img src="{% static 'images/blog2.jpg' %}" alt="Blog 2" class="rounded-t-3xl h-48 md:h-56 w-full object-cover">
+                    <div class="p-6 md:p-8 flex flex-col flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <img src="{% static 'images/avatar2.png' %}" alt="Author" class="w-8 h-8 rounded-full border-2 border-white shadow">
+                            <span class="text-xs font-semibold text-gray-900">John Smith</span>
+                            <span class="text-xs text-gray-400">· May 2025</span>
+                        </div>
+                        <span class="text-xs font-semibold text-[#005B4F] mb-2 uppercase tracking-wider">Security</span>
+                        <h3 class="text-lg md:text-2xl font-semibold mb-3">Enterprise Security Best Practices</h3>
+                        <p class="text-gray-700 mb-6 text-sm md:text-base">Learn how to keep your enterprise data safe with these essential security tips.</p>
+                        <div class="flex gap-2 mb-4">
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">Security</span>
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">Enterprise</span>
+                        </div>
+                        <a href="#" class="text-[#005B4F] font-semibold hover:underline mt-auto">Read More</a>
+                    </div>
+                </div>
+                <div class="bg-[#f1f5f9] rounded-3xl shadow p-0 hover:shadow-lg transition flex flex-col overflow-hidden border border-white text-gray-900">
+                    <img src="{% static 'images/blog3.jpg' %}" alt="Blog 3" class="rounded-t-3xl h-48 md:h-56 w-full object-cover">
+                    <div class="p-6 md:p-8 flex flex-col flex-1">
+                        <div class="flex items-center gap-3 mb-2">
+                            <img src="{% static 'images/avatar3.png' %}" alt="Author" class="w-8 h-8 rounded-full border-2 border-white shadow">
+                            <span class="text-xs font-semibold text-gray-900">Alex Lee</span>
+                            <span class="text-xs text-gray-400">· May 2025</span>
+                        </div>
+                        <span class="text-xs font-semibold text-[#005B4F] mb-2 uppercase tracking-wider">Growth</span>
+                        <h3 class="text-lg md:text-2xl font-semibold mb-3">Scaling Asset Management for Growth</h3>
+                        <p class="text-gray-700 mb-6 text-sm md:text-base">How to ensure your asset management system grows with your business.</p>
+                        <div class="flex gap-2 mb-4">
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">Growth</span>
+                            <span class="bg-[#005B4F] text-white px-3 py-1 rounded-full text-xs font-semibold">Scaling</span>
+                        </div>
+                        <a href="#" class="text-[#005B4F] font-semibold hover:underline mt-auto">Read More</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer (Hashnode style) -->
+    <footer class="bg-[#18181b] text-white py-12 mt-24">
+        <div class="max-w-6xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
+            <div class="flex items-center gap-3 mb-6 md:mb-0">
+                <img src="{% static 'images/gridlogo.png' %}" alt="GridSet Logo" class="h-10 w-10 rounded-full">
+                <span class="text-2xl font-bold tracking-tight" style="font-family: 'Montserrat', 'Inter', sans-serif;">Grid<span class="text-blue-400">Set</span></span>
+            </div>
+            <div class="flex gap-8 text-gray-300 text-lg">
+                <a href="#features" class="hover:text-blue-400 transition">Features</a>
+                <a href="#enterprise" class="hover:text-blue-400 transition">Enterprise</a>
+                <a href="#pricing" class="hover:text-blue-400 transition">Pricing</a>
+                <a href="#blog" class="hover:text-blue-400 transition">Blog</a>
+            </div>
+            <div class="flex gap-4 items-center">
+                <a href="#" class="hover:text-blue-400 transition"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M24 4.56v14.91a4.56 4.56 0 01-4.56 4.56H4.56A4.56 4.56 0 010 19.47V4.56A4.56 4.56 0 014.56 0h14.91A4.56 4.56 0 0124 4.56zM8.09 19.47V9.29H5.08v10.18h3.01zm-1.5-11.6a1.74 1.74 0 110-3.48 1.74 1.74 0 010 3.48zm13.41 11.6v-5.6c0-1.34-.03-3.07-1.87-3.07-1.87 0-2.16 1.46-2.16 2.97v5.7h-3.01V9.29h2.89v1.39h.04a3.17 3.17 0 012.85-1.57c3.05 0 3.61 2.01 3.61 4.62v5.74h-3.01z"/></svg></a>
+                <a href="#" class="hover:text-blue-400 transition"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M23.954 4.569c-.885.389-1.83.654-2.825.775 1.014-.611 1.794-1.574 2.163-2.724-.951.564-2.005.974-3.127 1.195-.897-.957-2.178-1.555-3.594-1.555-2.72 0-4.924 2.204-4.924 4.924 0 .386.044.763.127 1.124C7.691 8.095 4.066 6.13 1.64 3.161c-.423.722-.666 1.561-.666 2.475 0 1.708.87 3.216 2.188 4.099-.807-.026-1.566-.247-2.228-.616v.062c0 2.385 1.693 4.374 3.946 4.827-.413.112-.849.171-1.296.171-.317 0-.626-.03-.928-.086.627 1.956 2.444 3.377 4.6 3.417-1.68 1.318-3.809 2.105-6.102 2.105-.397 0-.788-.023-1.175-.069 2.179 1.397 4.768 2.213 7.557 2.213 9.054 0 14.009-7.496 14.009-13.986 0-.213-.005-.425-.014-.636.962-.695 1.797-1.562 2.457-2.549z"/></svg></a>
+                <a href="#" class="hover:text-blue-400 transition"><svg class="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.163c-5.468 0-9.837 4.369-9.837 9.837 0 4.354 2.82 8.065 6.839 9.387.5.092.682-.217.682-.482 0-.237-.009-.868-.013-1.703-2.782.604-3.369-1.342-3.369-1.342-.454-1.154-1.11-1.461-1.11-1.461-.908-.62.069-.608.069-.608 1.004.07 1.532 1.032 1.532 1.032.892 1.529 2.341 1.088 2.91.832.091-.646.35-1.088.636-1.339-2.221-.253-4.555-1.111-4.555-4.943 0-1.091.39-1.984 1.029-2.683-.103-.253-.446-1.272.098-2.65 0 0 .84-.269 2.75 1.025A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.294 2.748-1.025 2.748-1.025.546 1.378.202 2.397.1 2.65.64.699 1.028 1.592 1.028 2.683 0 3.841-2.337 4.687-4.566 4.936.359.309.678.919.678 1.852 0 1.336-.012 2.417-.012 2.747 0 .267.18.577.688.48C19.18 20.062 22 16.451 22 12c0-5.468-4.369-9.837-9.837-9.837z"/></svg></a>
+            </div>
+            <div class="text-gray-400 text-sm mt-6 md:mt-0">&copy; 2025 GridSet. All rights reserved.</div>
+        </div>
+    </footer>
+    <script src="https://cdn.jsdelivr.net/npm/flowbite@3.1.2/dist/flowbite.min.js"></script>
+    <script>
+        // Add btn-green class to all <a> and <button> with button-like classes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('a, button').forEach(function(el) {
+                if (el.className.match(/(rounded|py-2|py-3|px-5|px-6|px-7|font-semibold|shadow|border)/)) {
+                    el.classList.add('btn-green');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

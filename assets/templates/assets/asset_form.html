@@ -1,0 +1,221 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="modal-style-form">
+    <div class="form-header">
+        <div class="header-left">
+            <a href="{% url 'asset_list' %}" class="back-btn">
+                <i class="fas fa-arrow-left"></i>
+            </a>
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-box"></i>
+                </div>
+                <div>
+                    <h2>Add Asset</h2>
+                    <p>Add a new asset to your inventory</p>
+                </div>
+            </div>
+        </div>
+        <button class="btn-close" onclick="window.history.back()">
+            <i class="fas fa-times"></i>
+        </button>
+    </div>
+
+    <div class="form-progress">
+        <div class="progress-step active">
+            <div class="step-number">01</div>
+            <span>General</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="progress-step">
+            <div class="step-number">02</div>
+            <span>Department</span>
+        </div>
+        <div class="step-line"></div>
+        <div class="progress-step">
+            <div class="step-number">03</div>
+            <span>Assigned User</span>
+        </div>
+    </div>
+
+    <form method="post" class="modern-form" enctype="multipart/form-data">
+        {% csrf_token %}
+        <div class="form-sections">
+
+            <!-- General section -->
+            <div class="form-section active" id="general">
+
+                <div class="form-group">
+                    <label for="{{ form.serial_no.id_for_label }}">Serial Number</label>
+                    {{ form.serial_no }}
+                    {{ form.serial_no.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.purchase_date.id_for_label }}">Purchase Date</label>
+                    {{ form.purchase_date }}
+                    {{ form.purchase_date.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.purchase_cost.id_for_label }}">Purchase Cost</label>
+                    {{ form.purchase_cost }}
+                    {{ form.purchase_cost.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.condition.id_for_label }}">Condition</label>
+                    {{ form.condition }}
+                    {{ form.condition.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.depreciation.id_for_label }}">Depreciation (%)</label>
+                    {{ form.depreciation }}
+                    {{ form.depreciation.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.supplier.id_for_label }}">Supplier</label>
+                    {{ form.supplier }}
+                    {{ form.supplier.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.warranty.id_for_label }}">Warranty</label>
+                    {{ form.warranty }}
+                    {{ form.warranty.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.description.id_for_label }}">Description <span class="required">*</span></label>
+                    {{ form.description }}
+                    <small>Provide a brief description of the asset</small>
+                    {{ form.description.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.category.id_for_label }}">Category <span class="required">*</span></label>
+                    {{ form.category }}
+                    {{ form.category.errors }}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.image.id_for_label }}">Asset Image (Optional)</label>
+                    <div class="image-upload-area">
+                        <div class="upload-content">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <p class="upload-text">
+                                <span class="upload-main-text">Add an image of your asset</span>
+                                <span class="upload-sub-text">Drop your image here, or <label for="{{ form.image.id_for_label }}" class="browse-link">browse</label></span>
+                                <span class="upload-format">Supports: JPG, PNG, GIF (Max 5MB)</span>
+                            </p>
+                        </div>
+                        {{ form.image }}
+                    </div>
+                    {{ form.image.errors }}
+                </div>
+            </div>
+
+            <!-- Department section -->
+            <div class="form-section" id="location">
+                <div class="form-group">
+                    <label for="{{ form.department.id_for_label }}">Department <span class="required">*</span></label>
+                    {{ form.department }}
+                    <small>Select the department this asset belongs to</small>
+                    {{ form.department.errors }}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.status.id_for_label }}">Status <span class="required">*</span></label>
+                    {{ form.status }}
+                    <small>Current status of the asset</small>
+                    {{ form.status.errors }}
+                </div>
+            </div>
+
+            <!-- Assignment section -->
+            <div class="form-section" id="assignment">
+                <div class="form-group">
+                    <label for="{{ form.assigned_to.id_for_label }}">Assign To</label>
+                    {{ form.assigned_to }}
+                    <small>Select a user to assign this asset to (optional)</small>
+                    {{ form.assigned_to.errors }}
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">Cancel</button>
+            <div class="action-buttons">
+                <button type="button" class="btn btn-outline-primary" id="prev-btn" disabled>Previous</button>
+                <button type="button" class="btn btn-primary" id="next-btn">Next</button>
+                <button type="submit" class="btn btn-primary" id="submit-btn" style="display: none;">Create Asset</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const sections = document.querySelectorAll('.form-section');
+    const steps = document.querySelectorAll('.progress-step');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const submitBtn = document.getElementById('submit-btn');
+    let currentSection = 0;
+
+    // Hide all sections except the first one
+    sections.forEach((section, index) => {
+        if (index !== 0) section.style.display = 'none';
+    });
+
+    function updateButtons() {
+        prevBtn.disabled = currentSection === 0;
+        if (currentSection === sections.length - 1) {
+            nextBtn.style.display = 'none';
+            submitBtn.style.display = 'block';
+        } else {
+            nextBtn.style.display = 'block';
+            submitBtn.style.display = 'none';
+        }
+    }
+
+    function updateSections() {
+        sections.forEach((section, index) => {
+            section.style.display = index === currentSection ? 'block' : 'none';
+        });
+
+        steps.forEach((step, index) => {
+            if (index === currentSection) {
+                step.classList.add('active');
+            } else if (index < currentSection) {
+                step.classList.add('completed');
+                step.classList.remove('active');
+            } else {
+                step.classList.remove('active', 'completed');
+            }
+        });
+
+        updateButtons();
+    }
+
+    prevBtn.addEventListener('click', () => {
+        if (currentSection > 0) {
+            currentSection--;
+            updateSections();
+        }
+    });
+
+    nextBtn.addEventListener('click', () => {
+        if (currentSection < sections.length - 1) {
+            currentSection++;
+            updateSections();
+        }
+    });
+
+    // Initialize buttons state
+    updateButtons();
+});
+</script>
+{% endblock %} 

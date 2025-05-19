@@ -1,0 +1,138 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="modal-style-view">
+    <div class="view-header">
+        <div class="header-left">
+            <a href="{% url 'asset_list' %}" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Back
+            </a>
+        </div>
+        <div class="header-right">
+            <button class="btn-close" onclick="window.history.back()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div>
+
+    <div class="view-content">
+        <div class="asset-gallery">
+            <div class="main-image">
+                {% if asset.image %}
+                    <img src="{{ asset.image.url }}" alt="{{ asset.name }}">
+                {% else %}
+                    <div class="placeholder-image">
+                        <i class="fas fa-box"></i>
+                    </div>
+                {% endif %}
+            </div>
+            {% if asset.image %}
+            <div class="thumbnail-row">
+                <img src="{{ asset.image.url }}" alt="Thumbnail" class="active">
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="asset-details">
+            <h1 class="asset-title">{{ asset.name }}</h1>
+            <p class="asset-category">{{ asset.get_category_display }}</p>
+
+            <div class="detail-tabs">
+                <div class="tab-list">
+                    <button type="button" class="tab-btn active" onclick="switchTab('specifications')">
+                        <i class="fas fa-clipboard-list"></i>
+                        Specifications
+                    </button>
+                    <button type="button" class="tab-btn" onclick="switchTab('location')">
+                        <i class="fas fa-map-marker-alt"></i>
+                        Location
+                    </button>
+                    <button type="button" class="tab-btn" onclick="switchTab('status')">
+                        <i class="fas fa-info-circle"></i>
+                        Status
+                    </button>
+                </div>
+
+                <div class="tab-content">
+                    <div id="specifications" class="tab-pane active">
+                        <div class="specs-grid">
+                            <div class="spec-item">
+                                <label>Category</label>
+                                <span>{{ asset.get_category_display }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <label>Added Date</label>
+                                <span>{{ asset.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="spec-item">
+                                <label>Last Updated</label>
+                                <span>{{ asset.updated_at|date:"M d, Y" }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="location" class="tab-pane">
+                        <div class="specs-grid">
+                            <div class="spec-item">
+                                <label>Department</label>
+                                <span>{{ asset.department }}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="status" class="tab-pane">
+                        <div class="specs-grid">
+                            <div class="spec-item">
+                                <label>Current Status</label>
+                                <span class="status-badge status-{{ asset.status }}">
+                                    {{ asset.get_status_display }}
+                                </span>
+                            </div>
+                            {% if asset.assigned_to %}
+                            <div class="spec-item">
+                                <label>Assigned To</label>
+                                <div class="user-info">
+                                    <img src="https://ui-avatars.com/api/?name={{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}&size=32" alt="User" class="user-avatar">
+                                    <span>{{ asset.assigned_to.get_full_name|default:asset.assigned_to.username }}</span>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-row">
+                {% if user.is_staff %}
+                    <a href="{% url 'asset_update' pk=asset.pk %}" class="btn btn-primary">Edit Asset</a>
+                {% else %}
+                    {% if can_request %}
+                        <a href="{% url 'request_asset' pk=asset.pk %}" class="btn btn-primary">Request Asset</a>
+                    {% else %}
+                        <button class="btn btn-secondary" disabled>Request Pending</button>
+                    {% endif %}
+                {% endif %}
+                <button class="btn btn-outline-primary" id="favoriteBtn">
+                    <i class="far fa-heart"></i> Add to Favorites
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function switchTab(tabId) {
+    // Remove active class from all tabs and panes
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    document.querySelectorAll('.tab-pane').forEach(pane => {
+        pane.classList.remove('active');
+    });
+    
+    // Add active class to selected tab and pane
+    document.querySelector(`.tab-btn[onclick*="${tabId}"]`).classList.add('active');
+    document.getElementById(tabId).classList.add('active');
+}
+</script>
+{% endblock %} 

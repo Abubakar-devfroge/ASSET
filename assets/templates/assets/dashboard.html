@@ -1,0 +1,140 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>Dashboard</h1>
+        <p class="text-muted">Overview of your asset management system</p>
+    </div>
+</div>
+
+<div class="dashboard-grid">
+    <!-- Stats Cards -->
+    <div class="stats-row">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-laptop"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_assets }}</h3>
+                <p>Total Assets</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ available_assets }}</h3>
+                <p>Available Assets</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ pending_requests }}</h3>
+                <p>Pending Requests</p>
+            </div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ assigned_assets }}</h3>
+                <p>Assigned Assets</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="dashboard-content">
+        <!-- Recent Assets -->
+        <div class="content-card">
+            <div class="card-header">
+                <div class="header-title">
+                    <i class="fas fa-clock"></i>
+                    <h2>Recent Assets</h2>
+                </div>
+                <a href="{% url 'asset_list' %}" class="btn btn-primary btn-sm">
+                    View All
+                </a>
+            </div>
+            <div class="recent-assets">
+                {% for asset in recent_assets %}
+                <div class="asset-item">
+                    <div class="asset-info">
+                        {% if asset.image %}
+                            <img src="{{ asset.image.url }}" alt="{{ asset.name }}" class="asset-thumbnail">
+                        {% else %}
+                            <div class="asset-thumbnail placeholder">
+                                <i class="fas fa-box"></i>
+                            </div>
+                        {% endif %}
+                        <div>
+                            <h4>{{ asset.name }}</h4>
+                            <span class="category">{{ asset.get_category_display }}</span>
+                        </div>
+                    </div>
+                    <span class="status-badge status-{{ asset.status }}">
+                        {{ asset.get_status_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <p>No assets added yet</p>
+                    <a href="{% url 'asset_create' %}" class="btn btn-primary btn-sm">Add Asset</a>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Recent Requests -->
+        <div class="content-card">
+            <div class="card-header">
+                <div class="header-title">
+                    <i class="fas fa-bell"></i>
+                    <h2>Recent Requests</h2>
+                </div>
+                {% if user.is_staff %}
+                <a href="{% url 'manage_requests' %}" class="btn btn-primary btn-sm">
+                    Manage All
+                </a>
+                {% endif %}
+            </div>
+            <div class="recent-requests">
+                {% for request in recent_requests %}
+                <div class="request-item">
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&size=32" alt="User" class="user-avatar">
+                        <div>
+                            <h4>{{ request.user.get_full_name|default:request.user.username }}</h4>
+                            <span class="text-muted">{{ request.request_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="request-asset">
+                        <span>{{ request.asset.name }}</span>
+                        {% if request.approved is None %}
+                            <span class="status-badge status-pending">Pending</span>
+                        {% elif request.approved %}
+                            <span class="status-badge status-approved">Approved</span>
+                        {% else %}
+                            <span class="status-badge status-rejected">Rejected</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <p>No requests yet</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

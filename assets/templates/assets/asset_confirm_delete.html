@@ -1,0 +1,24 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="modal-style-form">
+    <div class="delete-dialog">
+        <div class="delete-icon">
+            <i class="fas fa-trash-alt"></i>
+        </div>
+        
+        <div class="delete-content">
+            <h2>You are about to delete an asset</h2>
+            <p class="text-muted">This will delete your asset from catalog. Are you sure?</p>
+        </div>
+
+        <div class="delete-actions">
+            <form method="post">
+                {% csrf_token %}
+                <button type="button" class="btn btn-outline-secondary" onclick="window.history.back()">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,70 @@
+<div class="table-responsive">
+    <table class="table modern-table">
+        <thead>
+            <tr>
+                <th>Request ID</th>
+                <th>Asset</th>
+                <th>Requested By</th>
+                <th>Date</th>
+                <th>Purpose</th>
+                <th>Status</th>
+                {% if status == "pending" %}
+                    <th>Actions</th>
+                {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for request in requests %}
+            <tr>
+                <td>#{{ request.id }}</td>
+                <td>
+                    <div class="asset-info">
+                        <div class="asset-name">{{ request.asset.name }}</div>
+                        <small class="text-muted">{{ request.asset.category }}</small>
+                    </div>
+                </td>
+                <td>
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&size=32" alt="User" class="user-avatar">
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                    </div>
+                </td>
+                <td>{{ request.request_date|date:"M d, Y" }}</td>
+                <td>{{ request.purpose }}</td>
+                <td>
+                    {% if status == "pending" %}
+                        <span class="status-badge status-warning">Pending</span>
+                    {% elif status == "approved" %}
+                        <span class="status-badge status-success">Approved</span>
+                    {% else %}
+                        <span class="status-badge status-danger">Rejected</span>
+                    {% endif %}
+                </td>
+                {% if status == "pending" %}
+                <td>
+                    <div class="action-buttons">
+                        <a href="{% url 'process_request' request_id=request.id action='approve' %}" 
+                           class="btn btn-success btn-sm" title="Approve">
+                            <i class="fas fa-check"></i> Approve
+                        </a>
+                        <a href="{% url 'process_request' request_id=request.id action='reject' %}" 
+                           class="btn btn-danger btn-sm" title="Reject">
+                            <i class="fas fa-times"></i> Reject
+                        </a>
+                    </div>
+                </td>
+                {% endif %}
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="{% if status == 'pending' %}7{% else %}6{% endif %}" class="text-center py-4">
+                    <div class="empty-state">
+                        <i class="fas fa-inbox fa-3x text-muted"></i>
+                        <p>No {{ status }} requests found</p>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div> 

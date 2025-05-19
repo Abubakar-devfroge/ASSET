@@ -1,0 +1,156 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="page-header">
+    <div class="header-content">
+        <h1>Manage Requests</h1>
+        <p class="text-muted">Review and process asset requests</p>
+    </div>
+</div>
+
+<div class="requests-container">
+    <!-- Pending Requests -->
+    <div class="content-card">
+        <div class="card-header">
+            <div class="header-title">
+                <i class="fas fa-clock text-warning"></i>
+                <h2>Pending Requests</h2>
+                <span class="badge">{{ pending_requests.count }}</span>
+            </div>
+        </div>
+        <div class="requests-list">
+            {% for request in pending_requests %}
+            <div class="request-item">
+                <div class="request-info">
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&size=32" alt="User" class="user-avatar">
+                        <div class="user-details">
+                            <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+                            <span class="text-muted">Requested {{ request.request_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="asset-info">
+                        <h4>{{ request.asset.name }}</h4>
+                        <div class="asset-meta">
+                            <span class="category">
+                                <i class="fas fa-tag"></i>
+                                {{ request.asset.get_category_display }}
+                            </span>
+                            <span class="department">
+                                <i class="fas fa-building"></i>
+                                {{ request.asset.department }}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="request-purpose">
+                        <p>{{ request.purpose }}</p>
+                    </div>
+                </div>
+                <div class="request-actions">
+                    <a href="{% url 'process_request' request_id=request.id action='reject' %}" class="btn btn-outline-danger">
+                        <i class="fas fa-times"></i> Reject
+                    </a>
+                    <a href="{% url 'process_request' request_id=request.id action='approve' %}" class="btn btn-success">
+                        <i class="fas fa-check"></i> Approve
+                    </a>
+                </div>
+            </div>
+            {% empty %}
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <p>No pending requests</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Processed Requests -->
+    <div class="content-card">
+        <div class="card-header">
+            <div class="header-title">
+                <i class="fas fa-history text-primary"></i>
+                <h2>Request History</h2>
+            </div>
+            <div class="header-actions">
+                <button type="button" 
+                        class="btn btn-danger btn-sm" 
+                        onclick="confirmClearHistory()"
+                        {% if not approved_requests and not rejected_requests %}disabled{% endif %}>
+                    <i class="fas fa-trash"></i> Clear History
+                </button>
+            </div>
+        </div>
+        <div class="requests-list">
+            {% for request in approved_requests|slice:":5" %}
+            <div class="request-item processed approved">
+                <div class="request-info">
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&size=32" alt="User" class="user-avatar">
+                        <div class="user-details">
+                            <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+                            <span class="text-muted">Approved on {{ request.approval_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="asset-info">
+                        <h4>{{ request.asset.name }}</h4>
+                        <span class="status-badge status-approved">Approved</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% for request in rejected_requests|slice:":5" %}
+            <div class="request-item processed rejected">
+                <div class="request-info">
+                    <div class="user-info">
+                        <img src="https://ui-avatars.com/api/?name={{ request.user.get_full_name|default:request.user.username }}&size=32" alt="User" class="user-avatar">
+                        <div class="user-details">
+                            <h3>{{ request.user.get_full_name|default:request.user.username }}</h3>
+                            <span class="text-muted">Rejected on {{ request.approval_date|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    <div class="asset-info">
+                        <h4>{{ request.asset.name }}</h4>
+                        <span class="status-badge status-rejected">Rejected</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+            {% if not approved_requests and not rejected_requests %}
+            <div class="empty-state">
+                <i class="fas fa-history"></i>
+                <p>No processed requests yet</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Clear History Confirmation Modal -->
+<div class="modal fade" id="clearHistoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Clear Request History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to clear all processed request history? This action cannot be undone.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form method="post" action="{% url 'clear_request_history' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Clear History</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmClearHistory() {
+    var myModal = new bootstrap.Modal(document.getElementById('clearHistoryModal'));
+    myModal.show();
+}
+</script>
+{% endblock %} 

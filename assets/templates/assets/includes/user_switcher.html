@@ -1,0 +1,14 @@
+<div class="user-switcher">
+    <form method="post" action="{% url 'switch_user' %}" class="user-switcher-form">
+        {% csrf_token %}
+        <select name="user_id" class="form-select" onchange="this.form.submit()">
+            <option value="">Select User</option>
+            {% for user in available_users %}
+                <option value="{{ user.id }}" {% if user == request.user %}selected{% endif %}>
+                    {{ user.get_full_name|default:user.username }} 
+                    {% if user.is_staff %}(Admin){% endif %}
+                </option>
+            {% endfor %}
+        </select>
+    </form>
+</div> 

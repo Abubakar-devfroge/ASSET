@@ -1,0 +1,181 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asset Management System</title>
+           <link rel="icon" type="image/svg+xml" href="{% static '/img/konza.png' %}" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    {% if messages %}
+    <div class="alert-container">
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert" data-alert-id="{{ forloop.counter }}">
+                <div class="alert-content">
+                    {% if message.tags == 'error' %}
+                        <i class="fas fa-exclamation-circle"></i>
+                    {% elif message.tags == 'success' %}
+                        <i class="fas fa-check-circle"></i>
+                    {% endif %}
+                    <span>{{ message }}</span>
+                </div>
+                <button type="button" class="btn-close" onclick="dismissAlert(this)" aria-label="Close">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        {% endfor %}
+    </div>
+
+    <script>
+    function dismissAlert(button) {
+        const alert = button.closest('.alert');
+        alert.style.opacity = '0';
+        alert.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            alert.remove();
+            // Check if this was the last alert
+            const container = document.querySelector('.alert-container');
+            if (container && !container.querySelector('.alert')) {
+                container.remove();
+            }
+        }, 300);
+    }
+
+    // Auto-dismiss alerts after 5 seconds
+    document.addEventListener('DOMContentLoaded', function() {
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach((alert, index) => {
+            setTimeout(() => {
+                if (alert && alert.parentNode) {
+                    dismissAlert(alert.querySelector('.btn-close'));
+                }
+            }, 5000 + (index * 500)); // Stagger the dismissal of multiple alerts
+        });
+    });
+    </script>
+    {% endif %}
+    <div class="app-wrapper">
+        <!-- Sidebar -->
+        <nav id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i class="fas fa-cubes logo-icon"></i>
+                    <div class="logo-text">
+                        <span class="logo-grid">Grid</span><span class="logo-set">Set</span>
+                    </div>
+                </div>
+            </div>
+            <ul class="sidebar-menu">
+                <li class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                    <a href="{% url 'dashboard' %}">
+                        <i class="fas fa-th-large"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
+                <li class="{% if request.resolver_match.url_name == 'asset_list' %}active{% endif %}">
+                    <a href="{% url 'asset_list' %}">
+                        <i class="fas fa-laptop"></i>
+                        <span>Assets</span>
+                    </a>
+                </li>
+                {% if user.is_staff or user.is_superuser %}
+                <li class="{% if request.resolver_match.url_name == 'manage_requests' %}active{% endif %}">
+                    <a href="{% url 'manage_requests' %}">
+                        <i class="fas fa-tasks"></i>
+                        <span>Manage Requests</span>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="{% if request.resolver_match.url_name == 'reports' %}active{% endif %}">
+                    <a href="{% url 'reports' %}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'logout' %}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Main Content -->
+        <div id="main-content">
+            <!-- Top Navigation -->
+            <nav class="top-nav">
+                <div class="nav-left">
+                    <button type="button" id="sidebarCollapse" class="btn">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    {% if debug %}
+                        <div class="user-switcher">
+                            <form method="post" action="{% url 'switch_user' %}" class="user-switcher-form">
+                                {% csrf_token %}
+                                <select name="user_id" class="form-select" onchange="this.form.submit()">
+                                    <option value="">Switch User</option>
+                                    {% for user in available_users %}
+                                        <option value="{{ user.id }}" {% if user == request.user %}selected{% endif %}>
+                                            {% if user.is_staff %} {% endif %}
+                                            {{ user.get_full_name|default:user.username }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </form>
+                        </div>
+                    {% endif %}
+                    <div class="search-container">
+                        <form method="get" action="{% url 'asset_list' %}" class="search-form">
+                            <i class="fas fa-search search-icon"></i>
+                            <input 
+                                type="text" 
+                                name="q" 
+                                placeholder="Search assets..." 
+                                class="search-input"
+                                value="{{ search_query|default:'' }}"
+                                autocomplete="off"
+                            >
+                            {% if search_query %}
+                                <button type="button" class="search-clear" onclick="clearSearch(this)">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            {% endif %}
+                        </form>
+                    </div>
+                </div>
+                <div class="nav-right">
+                    <div class="current-user">
+                        <span>Logged in as: {{ request.user.get_full_name|default:request.user.username }}</span>
+                        {% if request.user.is_staff %}
+                            <span class="badge bg-primary">Admin</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+
+            <!-- Page Content -->
+            <div class="content-wrapper">
+                {% block content %}
+                {% endblock %}
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarCollapse = document.getElementById('sidebarCollapse');
+            
+            sidebarCollapse.addEventListener('click', function() {
+                document.querySelector('.app-wrapper').classList.toggle('sidebar-collapsed');
+            });
+        });
+    </script>
+</body>
+</html>
