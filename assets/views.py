@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models import Asset, AssetRequest
+from .models import Asset, AssetRequest, Department
 from .forms import AssetForm, AssetRequestForm
 from .decorators import admin_required
 from django.contrib.auth import login
@@ -16,7 +16,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from django.db.models import Count
+from django.db.models import Count, Sum, Avg, F
+from django.db.models.functions import TruncMonth
 from io import BytesIO
 from datetime import datetime
 from django.db import transaction
@@ -266,30 +267,248 @@ def dashboard(request):
 
 @login_required
 def reports(request):
-    """View for generating reports"""
-    # Get summary statistics
-    total_assets = Asset.objects.count()
-    assets_by_category = Asset.objects.values('category').annotate(count=Count('category'))
-    assets_by_status = Asset.objects.values('status').annotate(count=Count('status'))
-    assets_by_department = Asset.objects.values('department__name').annotate(count=Count('department'))
-    pending_requests = AssetRequest.objects.filter(approved__isnull=True).count()
-    approved_requests = AssetRequest.objects.filter(approved=True).count()
-    rejected_requests = AssetRequest.objects.filter(approved=False).count()
+    # Get filter parameters
+    department = request.GET.get('department')
+    category = request.GET.get('category')
+    status = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Base queryset
+    assets = Asset.objects.all()
+    requests = AssetRequest.objects.all()
+
+    # Apply filters
+    if department:
+        assets = assets.filter(department__name=department)
+        requests = requests.filter(asset__department__name=department)
+    
+    if category:
+        assets = assets.filter(category=category)
+        requests = requests.filter(asset__category=category)
+    
+    if status:
+        assets = assets.filter(status=status)
+        requests = requests.filter(asset__status=status)
+    
+    if start_date:
+        assets = assets.filter(purchase_date__gte=start_date)
+        requests = requests.filter(request_date__gte=start_date)
+    
+    if end_date:
+        assets = assets.filter(purchase_date__lte=end_date)
+        requests = requests.filter(request_date__lte=end_date)
+
+    # Calculate summary statistics
+    total_assets = assets.count()
+    total_value = assets.aggregate(total=Sum('purchase_cost'))['total'] or 0
+    utilization_rate = (assets.filter(status='in_use').count() / total_assets * 100) if total_assets > 0 else 0
+    avg_response_time = requests.filter(approved__isnull=False).aggregate(
+        avg_time=Avg(F('approval_date') - F('request_date'))
+    )['avg_time'] or 0
+
+    # Get filter options
+    departments = Department.objects.all()
+    categories = Asset.CATEGORY_CHOICES
+    statuses = Asset.STATUS_CHOICES
+
+    # Current filters for template
+    current_filters = {
+        'department': department,
+        'category': category,
+        'status': status,
+        'start_date': start_date,
+        'end_date': end_date
+    }
 
     context = {
+        'assets': assets,
         'total_assets': total_assets,
-        'assets_by_category': assets_by_category,
-        'assets_by_status': assets_by_status,
-        'assets_by_department': assets_by_department,
-        'pending_requests': pending_requests,
-        'approved_requests': approved_requests,
-        'rejected_requests': rejected_requests,
+        'total_value': total_value,
+        'utilization_rate': round(utilization_rate, 1),
+        'avg_response_time': round(avg_response_time.days if avg_response_time else 0, 1),
+        'departments': departments,
+        'categories': categories,
+        'statuses': statuses,
+        'current_filters': current_filters
     }
+
     return render(request, 'assets/reports.html', context)
 
 @login_required
 def download_report(request):
-    """Generate and download PDF report"""
+    """Generate and download report in various formats"""
+    format_type = request.GET.get('format', 'pdf')
+    report_type = request.GET.get('type', 'all')
+    
+    # Get all filter parameters
+    department = request.GET.get('department')
+    category = request.GET.get('category')
+    status = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Base queryset
+    assets = Asset.objects.all()
+    
+    # Apply all filters
+    if department:
+        assets = assets.filter(department__name=department)
+    if category:
+        assets = assets.filter(category=category)
+    if status:
+        assets = assets.filter(status=status)
+    if start_date:
+        assets = assets.filter(purchase_date__gte=start_date)
+    if end_date:
+        assets = assets.filter(purchase_date__lte=end_date)
+    
+    # Filter by report type
+    if report_type == 'category':
+        data = assets.values('category').annotate(count=Count('category'))
+        title = 'Asset Distribution by Category'
+    elif report_type == 'status':
+        data = assets.values('status').annotate(count=Count('status'))
+        title = 'Asset Distribution by Status'
+    elif report_type == 'department':
+        data = assets.values('department__name').annotate(count=Count('department'))
+        title = 'Asset Distribution by Department'
+    else:
+        data = None
+        title = 'Complete Asset Report'
+    
+    if format_type == 'csv':
+        return generate_csv_report(request, data, title)
+    elif format_type == 'excel':
+        return generate_excel_report(request, data, title)
+    else:
+        return generate_pdf_report(request, data, title)
+
+def generate_csv_report(request, data=None, title=None):
+    """Generate CSV report"""
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="{title.lower().replace(" ", "_")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow([title, 'Generated on: ' + datetime.now().strftime('%B %d, %Y')])
+    writer.writerow([])
+    
+    if data:
+        # Write filtered data
+        writer.writerow(['Item', 'Count'])
+        for item in data:
+            if 'category' in item:
+                writer.writerow([dict(Asset.CATEGORY_CHOICES)[item['category']], item['count']])
+            elif 'status' in item:
+                writer.writerow([dict(Asset.STATUS_CHOICES)[item['status']], item['count']])
+            else:
+                writer.writerow([item['department__name'], item['count']])
+    else:
+        # Write complete report
+        writer.writerow(['Asset Summary'])
+        writer.writerow(['Total Assets', Asset.objects.count()])
+        writer.writerow(['Total Value', Asset.objects.aggregate(total=Sum('purchase_cost'))['total'] or 0])
+        writer.writerow([])
+        
+        # Category Distribution
+        writer.writerow(['Category Distribution'])
+        writer.writerow(['Category', 'Count'])
+        for item in Asset.objects.values('category').annotate(count=Count('category')):
+            writer.writerow([dict(Asset.CATEGORY_CHOICES)[item['category']], item['count']])
+        writer.writerow([])
+        
+        # Status Distribution
+        writer.writerow(['Status Distribution'])
+        writer.writerow(['Status', 'Count'])
+        for item in Asset.objects.values('status').annotate(count=Count('status')):
+            writer.writerow([dict(Asset.STATUS_CHOICES)[item['status']], item['count']])
+        writer.writerow([])
+        
+        # Department Distribution
+        writer.writerow(['Department Distribution'])
+        writer.writerow(['Department', 'Count'])
+        for item in Asset.objects.values('department__name').annotate(count=Count('department')):
+            writer.writerow([item['department__name'], item['count']])
+    
+    return response
+
+def generate_excel_report(request, data=None, title=None):
+    """Generate Excel report"""
+    import xlsxwriter
+    from io import BytesIO
+    
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet()
+    
+    # Add formatting
+    title_format = workbook.add_format({
+        'bold': True,
+        'font_size': 14,
+        'align': 'center'
+    })
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#4CAF50',
+        'font_color': 'white'
+    })
+    
+    # Write title
+    worksheet.write('A1', title, title_format)
+    worksheet.write('A2', 'Generated on: ' + datetime.now().strftime('%B %d, %Y'))
+    worksheet.write('A4', '')
+    
+    if data:
+        # Write filtered data
+        worksheet.write('A5', 'Item', header_format)
+        worksheet.write('B5', 'Count', header_format)
+        row = 6
+        for item in data:
+            if 'category' in item:
+                worksheet.write(f'A{row}', dict(Asset.CATEGORY_CHOICES)[item['category']])
+            elif 'status' in item:
+                worksheet.write(f'A{row}', dict(Asset.STATUS_CHOICES)[item['status']])
+            else:
+                worksheet.write(f'A{row}', item['department__name'])
+            worksheet.write(f'B{row}', item['count'])
+            row += 1
+    else:
+        # Write complete report
+        worksheet.write('A5', 'Asset Summary', title_format)
+        worksheet.write('A6', 'Total Assets')
+        worksheet.write('B6', Asset.objects.count())
+        worksheet.write('A7', 'Total Value')
+        worksheet.write('B7', Asset.objects.aggregate(total=Sum('purchase_cost'))['total'] or 0)
+        worksheet.write('A9', '')
+        
+        # Category Distribution
+        worksheet.write('A10', 'Category Distribution', title_format)
+        worksheet.write('A11', 'Category', header_format)
+        worksheet.write('B11', 'Count', header_format)
+        row = 12
+        for item in Asset.objects.values('category').annotate(count=Count('category')):
+            worksheet.write(f'A{row}', dict(Asset.CATEGORY_CHOICES)[item['category']])
+            worksheet.write(f'B{row}', item['count'])
+            row += 1
+        
+        # Add more sections as needed...
+    
+    workbook.close()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="{title.lower().replace(" ", "_")}.xlsx"'
+    
+    return response
+
+def generate_pdf_report(request, data=None, title=None):
+    """Generate PDF report"""
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter)
     
@@ -338,100 +557,146 @@ def download_report(request):
     
     # Add logo and title
     elements.append(Paragraph("GridSet", title_style))
-    elements.append(Paragraph("Asset Management Report", heading_style))
+    elements.append(Paragraph(title, heading_style))
     elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", normal_style))
     elements.append(Spacer(1, 20))
     
-    # Asset Summary
-    elements.append(Paragraph("Asset Distribution", heading_style))
-    
-    # Assets by Category
-    categories = Asset.objects.values('category').annotate(count=Count('category'))
-    category_data = [['Category', 'Count']]
-    for cat in categories:
-        category_data.append([dict(Asset.CATEGORY_CHOICES)[cat['category']], cat['count']])
-    
-    category_table = Table(category_data, colWidths=[300, 100])
-    category_table.setStyle(TableStyle([
-        # Header style
-        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),  # Center align the count column
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, border_color),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-    ]))
-    elements.append(category_table)
-    elements.append(Spacer(1, 20))
-    
-    # Assets by Status
-    elements.append(Paragraph("Status Distribution", heading_style))
-    status_data = [['Status', 'Count']]
-    statuses = Asset.objects.values('status').annotate(count=Count('status'))
-    for status in statuses:
-        status_data.append([dict(Asset.STATUS_CHOICES)[status['status']], status['count']])
-    
-    status_table = Table(status_data, colWidths=[300, 100])
-    status_table.setStyle(TableStyle([
-        # Header style
-        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, border_color),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-    ]))
-    elements.append(status_table)
-    elements.append(Spacer(1, 20))
-    
-    # Department Distribution
-    elements.append(Paragraph("Department Distribution", heading_style))
-    dept_data = [['Department', 'Count']]
-    departments = Asset.objects.values('department__name').annotate(count=Count('department'))
-    for dept in departments:
-        dept_data.append([dept['department__name'], dept['count']])
-    
-    dept_table = Table(dept_data, colWidths=[300, 100])
-    dept_table.setStyle(TableStyle([
-        # Header style
-        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, border_color),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-    ]))
-    elements.append(dept_table)
+    if data:
+        # Write filtered data
+        table_data = [['Item', 'Count']]
+        for item in data:
+            if 'category' in item:
+                table_data.append([dict(Asset.CATEGORY_CHOICES)[item['category']], item['count']])
+            elif 'status' in item:
+                table_data.append([dict(Asset.STATUS_CHOICES)[item['status']], item['count']])
+            else:
+                table_data.append([item['department__name'], item['count']])
+        
+        table = Table(table_data, colWidths=[400, 100])
+        table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
+            ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, border_color),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ]))
+        elements.append(table)
+    else:
+        # Write complete report
+        # Asset Summary
+        elements.append(Paragraph("Asset Summary", heading_style))
+        summary_data = [
+            ['Total Assets', str(Asset.objects.count())],
+            ['Total Value', f"${Asset.objects.aggregate(total=Sum('purchase_cost'))['total'] or 0}"],
+            ['Utilization Rate', f"{round((Asset.objects.filter(status='in_use').count() / Asset.objects.count() * 100) if Asset.objects.count() > 0 else 0, 1)}%"]
+        ]
+        
+        summary_table = Table(summary_data, colWidths=[300, 100])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, border_color),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+            ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ]))
+        elements.append(summary_table)
+        elements.append(Spacer(1, 20))
+        
+        # Category Distribution
+        elements.append(Paragraph("Category Distribution", heading_style))
+        category_data = [['Category', 'Count']]
+        categories = Asset.objects.values('category').annotate(count=Count('category'))
+        for cat in categories:
+            category_data.append([dict(Asset.CATEGORY_CHOICES)[cat['category']], cat['count']])
+        
+        category_table = Table(category_data, colWidths=[300, 100])
+        category_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
+            ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, border_color),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ]))
+        elements.append(category_table)
+        elements.append(Spacer(1, 20))
+        
+        # Status Distribution
+        elements.append(Paragraph("Status Distribution", heading_style))
+        status_data = [['Status', 'Count']]
+        statuses = Asset.objects.values('status').annotate(count=Count('status'))
+        for status in statuses:
+            status_data.append([dict(Asset.STATUS_CHOICES)[status['status']], status['count']])
+        
+        status_table = Table(status_data, colWidths=[300, 100])
+        status_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
+            ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, border_color),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ]))
+        elements.append(status_table)
+        elements.append(Spacer(1, 20))
+        
+        # Department Distribution
+        elements.append(Paragraph("Department Distribution", heading_style))
+        dept_data = [['Department', 'Count']]
+        departments = Asset.objects.values('department__name').annotate(count=Count('department'))
+        for dept in departments:
+            dept_data.append([dept['department__name'], dept['count']])
+        
+        dept_table = Table(dept_data, colWidths=[300, 100])
+        dept_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 12),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+            ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
+            ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 10),
+            ('GRID', (0, 0), (-1, -1), 1, border_color),
+            ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
+            ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
+            ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ]))
+        elements.append(dept_table)
     
     # Build PDF
     doc.build(elements)
@@ -440,7 +705,7 @@ def download_report(request):
     pdf = buffer.getvalue()
     buffer.close()
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="asset_report_{datetime.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'attachment; filename="{title.lower().replace(" ", "_")}_{datetime.now().strftime("%Y%m%d")}.pdf"'
     response.write(pdf)
     
     return response
