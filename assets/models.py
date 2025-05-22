@@ -112,3 +112,39 @@ class AssetRequest(models.Model):
 
     class Meta:
         ordering = ['-request_date']
+
+class StockTake(models.Model):
+    STATUS_CHOICES = [
+        ('in_progress', 'In Progress'),
+        ('completed', 'Completed'),
+        ('discrepancy', 'Discrepancy Found')
+    ]
+
+    date = models.DateField(auto_now_add=True)
+    department = models.ForeignKey(Department, on_delete=models.CASCADE)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='in_progress')
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(User, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Stock Take - {self.department.name} - {self.date}"
+
+    class Meta:
+        ordering = ['-date']
+
+class StockTakeItem(models.Model):
+    stock_take = models.ForeignKey(StockTake, on_delete=models.CASCADE, related_name='items')
+    asset = models.ForeignKey(Asset, on_delete=models.CASCADE)
+    expected_quantity = models.IntegerField(default=1)
+    actual_quantity = models.IntegerField(default=0)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.asset.asset_no} - {self.actual_quantity}/{self.expected_quantity}"
+
+    class Meta:
+        ordering = ['-created_at']

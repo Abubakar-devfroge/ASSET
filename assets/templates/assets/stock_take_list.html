@@ -1,0 +1,111 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-header">
+        <div class="header-title">
+            <i class="fas fa-clipboard-check"></i>
+            <h2>Stock Take Records</h2>
+        </div>
+        <a href="{% url 'stock_take_create' %}" class="header-link">
+            <i class="fas fa-plus"></i>
+            New Stock Take
+        </a>
+    </div>
+
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Department</th>
+                        <th>Status</th>
+                        <th>Created By</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for stock_take in stock_takes %}
+                    <tr>
+                        <td>{{ stock_take.date }}</td>
+                        <td>{{ stock_take.department.name }}</td>
+                        <td>
+                            {% if stock_take.status == 'in_progress' %}
+                                <span class="status-badge status-in_progress">
+                                    <i class="fas fa-clock"></i> In Progress
+                                </span>
+                            {% elif stock_take.status == 'completed' %}
+                                <span class="status-badge status-completed">
+                                    <i class="fas fa-check-circle"></i> Completed
+                                </span>
+                            {% elif stock_take.status == 'discrepancy' %}
+                                <span class="status-badge status-discrepancy">
+                                    <i class="fas fa-exclamation-circle"></i> Discrepancy Found
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>{{ stock_take.created_by.get_full_name|default:stock_take.created_by.username }}</td>
+                        <td>{{ stock_take.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'stock_take_detail' pk=stock_take.pk %}" class="btn btn-icon" title="View">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if stock_take.status == 'in_progress' %}
+                                <a href="{% url 'stock_take_update' pk=stock_take.pk %}" class="btn btn-icon" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4">
+                            <div class="no-results">
+                                <i class="fas fa-clipboard-check fa-3x text-muted"></i>
+                                <p>No stock take records found</p>
+                                <a href="{% url 'stock_take_create' %}" class="btn btn-primary">Start Stock Take</a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-in_progress {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .status-completed {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-discrepancy {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .status-badge i {
+        font-size: 0.875rem;
+    }
+</style>
+{% endblock %} 
