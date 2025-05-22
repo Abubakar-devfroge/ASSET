@@ -2,77 +2,75 @@
 {% load static %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center bg-[#f7f9fa] font-[Montserrat] px-4 sm:px-6 lg:px-8">
-    <div class="flex flex-col md:flex-row-reverse w-full max-w-6xl shadow-xl rounded-2xl overflow-hidden border border-[#e0e7ef]">
-        <!-- Left Panel (Login Form) -->
-        <div class="w-full md:w-1/2 bg-white p-8 sm:p-12">
-            <form method="post" class="w-full flex flex-col gap-6 relative">
-                {% csrf_token %}
-                <h2 class="text-2xl font-semibold text-gray-900">Login</h2>
-                <p class="text-sm text-gray-600 mb-4">Welcome back! Enter your credentials below.</p>
+<div class="min-h-screen flex items-center justify-center bg-[#f7f9fa] px-4 sm:px-6 lg:px-8 font-sans" style="font-family: 'Montserrat', 'Inter', sans-serif;">
+  <div class="flex flex-col md:flex-row-reverse w-full max-w-6xl shadow-xl rounded-2xl overflow-hidden border border-[#e0e7ef] bg-white">
+    <!-- Left Panel (Login Form) -->
+    <div class="w-full md:w-1/2 flex flex-col justify-center p-8 sm:p-12">
+      <form method="post" class="w-full flex flex-col gap-6 relative">
+        {% csrf_token %}
+        <h2 class="text-3xl md:text-4xl font-bold text-gray-900 section-title mb-2">Login</h2>
+        <p class="text-base text-gray-600 mb-6">Welcome back! Enter your credentials below.</p>
 
-                {% if form.errors %}
-                <div id="authError" class="flex items-center justify-between bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm fade-in-out shadow-sm">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                        <span>Invalid username or password.</span>
-                    </div>
-                    <button type="button" onclick="document.getElementById('authError').remove()" class="ml-4">
-                        <svg class="w-4 h-4 text-red-500 hover:text-red-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                </div>
-                {% endif %}
+        {% if form.errors %}
+        <div id="authError" class="flex items-center justify-between bg-red-50 border border-red-300 text-red-700 px-4 py-3 rounded-lg text-sm fade-in-out shadow-sm mb-2">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+            <span>Invalid username or password.</span>
+          </div>
+          <button type="button" onclick="document.getElementById('authError').remove()" class="ml-4">
+            <svg class="w-4 h-4 text-red-500 hover:text-red-700" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+        {% endif %}
 
-
-                <div class="flex flex-col gap-2">
-                    <label for="id_username" class="text-sm font-medium text-gray-700">Email ID</label>
-                    <input type="text" name="username" id="id_username" placeholder="you@example.com" autocomplete="username"
-                        class="rounded-lg border border-[#e0e7ef] focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/30 px-4 py-3 text-base bg-[#f1f5f9] text-gray-900 placeholder-gray-400 transition" required>
-                </div>
-
-                <div class="flex flex-col gap-2">
-                    <label for="id_password" class="text-sm font-medium text-gray-700">Password</label>
-                    <input type="password" name="password" id="id_password" placeholder="••••••••" autocomplete="current-password"
-                        class="rounded-lg border border-[#e0e7ef] focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/30 px-4 py-3 text-base bg-[#f1f5f9] text-gray-900 placeholder-gray-400 transition" required>
-                </div>
-
-                <div class="flex justify-end text-sm">
-                    <a href="#" class="text-[#005B4F] hover:underline">Forgot Password?</a>
-                </div>
-
-                <button type="submit"
-                    class="px-5 py-2 rounded-full font-semibold shadow transition bg-[#005B4F] text-white hover:bg-[#007566] border border-[#005B4F] focus:outline-none focus:ring-2 focus:ring-[#005B4F]/50">
-                    Log In
-                </button>
-            </form>
-
-            <div class="text-center mt-6">
-                <a href="/register/" class="text-[#005B4F] font-semibold hover:underline">
-                    Don't have an account? Register
-                </a>
-            </div>
+        <div class="flex flex-col gap-2">
+          <label for="id_username" class="text-base font-medium text-gray-700">Email ID</label>
+          <input type="text" name="username" id="id_username" placeholder="you@example.com" autocomplete="username"
+            class="rounded-lg border border-[#e0e7ef] focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/30 px-4 py-3 text-base bg-[#f1f5f9] text-gray-900 placeholder-gray-400 transition font-sans" required>
         </div>
 
-        <!-- Right Panel (Image & Branding) -->
-     <!-- Right Panel (Image & Branding) -->
-<div class="hidden md:flex w-full md:w-1/2 bg-gradient-to-br from-[#005B4F] to-[#2a2c2f] text-white flex-col justify-between p-10">
-    <div>
-<a href="/" title="Back to Home"><img src="{% static 'img/konza.png' %}" alt="Logo" class="h-8 mb-10"></a>
-        <h2 class="text-2xl font-semibold leading-snug">Fleets are the bridge that brings us together.</h2>
-        <p class="text-sm text-gray-300 mt-4 max-w-sm">
-            We believe all commercial vehicles deserve easy access to world-class fleet management.
-        </p>
-    </div>
-    <div class="pt-10">
-        <img src="{% static 'img/konza.png' %}" alt="Truck" class="rounded-lg object-cover w-full h-40 shadow-md">
-    </div>
-</div>
+        <div class="flex flex-col gap-2">
+          <label for="id_password" class="text-base font-medium text-gray-700">Password</label>
+          <input type="password" name="password" id="id_password" placeholder="••••••••" autocomplete="current-password"
+            class="rounded-lg border border-[#e0e7ef] focus:border-[#005B4F] focus:ring-2 focus:ring-[#005B4F]/30 px-4 py-3 text-base bg-[#f1f5f9] text-gray-900 placeholder-gray-400 transition font-sans" required>
+        </div>
 
+        <div class="flex justify-end text-sm mb-2">
+          <a href="#" class="text-[#005B4F] hover:underline font-medium">Forgot Password?</a>
+        </div>
+
+        <button type="submit"
+          class="px-5 py-2 rounded-full font-semibold shadow transition bg-[#005B4F] text-white hover:bg-[#007566] border border-[#005B4F] focus:outline-none focus:ring-2 focus:ring-[#005B4F]/50 section-title text-lg">
+          Log In
+        </button>
+      </form>
+
+      <div class="text-center mt-6">
+        <a href="/register/" class="text-[#005B4F] font-semibold hover:underline text-base">
+          Don't have an account? Register
+        </a>
+      </div>
     </div>
+
+        <!-- Right Panel (Image & Branding) -->
+    <!-- Right Panel (Image & Branding) -->
+    <div class="hidden md:flex w-full md:w-1/2 bg-gradient-to-br from-[#e0e7ff] to-[#f7f9fa] text-gray-900 flex-col justify-between p-10">
+      <div>
+        <a href="/" title="Back to Home"><img src="{% static 'images/gridlogo.png' %}" alt="Logo" class="h-10 mb-10 rounded-full shadow-md"></a>
+        <h2 class="text-3xl md:text-4xl font-bold section-title leading-snug">Empower Your Enterprise Asset Management</h2>
+        <p class="text-base text-gray-700 mt-4 max-w-sm">
+          Modern, scalable, and intuitive platform for managing assets, requests, and workflows. Built for teams, trusted by enterprises.
+        </p>
+      </div>
+      <div class="pt-10 flex justify-center">
+        <img src="{% static 'images/enterprise-hero.svg' %}" alt="Enterprise" class="rounded-xl object-cover w-full max-w-xs shadow-xl">
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
