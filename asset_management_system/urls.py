@@ -39,6 +39,10 @@ urlpatterns = [
     path('reports/', views.reports, name='reports'),
     path('reports/download/', views.download_report, name='download_report'),
     path('requests/clear-history/', views.clear_request_history, name='clear_request_history'),
+    path('stock-take/', views.stock_take_list, name='stock_take_list'),
+    path('stock-take/create/', views.stock_take_create, name='stock_take_create'),
+    path('stock-take/<int:pk>/', views.stock_take_detail, name='stock_take_detail'),
+    path('stock-take/<int:pk>/update/', views.stock_take_update, name='stock_take_update'),
 ]
 
 if settings.DEBUG:

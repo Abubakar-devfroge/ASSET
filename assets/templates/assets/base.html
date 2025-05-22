@@ -104,6 +104,14 @@
                         <span>Reports</span>
                     </a>
                 </li>
+                {% if user.is_staff or user.is_superuser %}
+                <li class="{% if request.resolver_match.url_name == 'stock_take_list' %}active{% endif %}">
+                    <a href="{% url 'stock_take_list' %}">
+                        <i class="fas fa-clipboard-check"></i>
+                        <span>Stock Take</span>
+                    </a>
+                </li>
+                {% endif %}
                 <li>
                     <a href="{% url 'logout' %}">
                         <i class="fas fa-sign-out-alt"></i>

@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models import Asset, AssetRequest, Department
+from .models import Asset, AssetRequest, Department, StockTake, StockTakeItem
 from .forms import AssetForm, AssetRequestForm
 from .decorators import admin_required
 from django.contrib.auth import login
@@ -751,3 +751,124 @@ def clear_request_history(request):
         AssetRequest.objects.filter(approved__isnull=False).delete()
         messages.success(request, 'Request history cleared successfully!')
     return redirect('manage_requests')
+
+@login_required
+@admin_required
+def stock_take_list(request):
+    """View to list all stock take records"""
+    stock_takes = StockTake.objects.all()
+    return render(request, 'assets/stock_take_list.html', {
+        'stock_takes': stock_takes
+    })
+
+@login_required
+@admin_required
+def stock_take_create(request):
+    """View to create a new stock take record"""
+    if request.method == 'POST':
+        department_id = request.POST.get('department')
+        notes = request.POST.get('notes', '')
+        
+        try:
+            with transaction.atomic():
+                # Create stock take record
+                stock_take = StockTake.objects.create(
+                    department_id=department_id,
+                    notes=notes,
+                    created_by=request.user
+                )
+                
+                # Get all assets for the department
+                assets = Asset.objects.filter(department_id=department_id)
+                
+                # Create stock take items for each asset
+                for asset in assets:
+                    StockTakeItem.objects.create(
+                        stock_take=stock_take,
+                        asset=asset,
+                        expected_quantity=1
+                    )
+                
+                messages.success(request, 'Stock take record created successfully!')
+                return redirect('stock_take_detail', pk=stock_take.pk)
+        except Exception as e:
+            messages.error(request, f'Error creating stock take record: {str(e)}')
+    
+    departments = Department.objects.all()
+    return render(request, 'assets/stock_take_form.html', {
+        'departments': departments,
+        'action': 'Create'
+    })
+
+@login_required
+@admin_required
+def stock_take_detail(request, pk):
+    """View to show details of a stock take record"""
+    stock_take = get_object_or_404(StockTake, pk=pk)
+    items = stock_take.items.all()
+    
+    if request.method == 'POST':
+        try:
+            with transaction.atomic():
+                for item in items:
+                    actual_quantity = int(request.POST.get(f'quantity_{item.id}', 0))
+                    notes = request.POST.get(f'notes_{item.id}', '')
+                    
+                    item.actual_quantity = actual_quantity
+                    item.notes = notes
+                    item.save()
+                
+                # Update stock take status
+                has_discrepancy = False
+                all_completed = True
+                
+                for item in items:
+                    if item.actual_quantity != item.expected_quantity:
+                        has_discrepancy = True
+                        all_completed = False
+                        break
+                    elif item.actual_quantity == 0:  # If any item hasn't been counted
+                        all_completed = False
+                
+                if has_discrepancy:
+                    stock_take.status = 'discrepancy'
+                elif all_completed:
+                    stock_take.status = 'completed'
+                else:
+                    stock_take.status = 'in_progress'
+                
+                stock_take.save()
+                
+                messages.success(request, 'Stock take updated successfully!')
+                return redirect('stock_take_list')
+        except Exception as e:
+            messages.error(request, f'Error updating stock take: {str(e)}')
+    
+    return render(request, 'assets/stock_take_detail.html', {
+        'stock_take': stock_take,
+        'items': items
+    })
+
+@login_required
+@admin_required
+def stock_take_update(request, pk):
+    """View to update a stock take record"""
+    stock_take = get_object_or_404(StockTake, pk=pk)
+    
+    if request.method == 'POST':
+        notes = request.POST.get('notes', '')
+        status = request.POST.get('status')
+        
+        try:
+            stock_take.notes = notes
+            stock_take.status = status
+            stock_take.save()
+            messages.success(request, 'Stock take record updated successfully!')
+            return redirect('stock_take_detail', pk=stock_take.pk)
+        except Exception as e:
+            messages.error(request, f'Error updating stock take record: {str(e)}')
+    
+    return render(request, 'assets/stock_take_form.html', {
+        'stock_take': stock_take,
+        'action': 'Update'
+    })

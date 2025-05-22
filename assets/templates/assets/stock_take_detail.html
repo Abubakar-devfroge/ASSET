@@ -1,0 +1,357 @@
+{% extends 'assets/base.html' %}
+
+{% block content %}
+<div class="content-card">
+    <div class="card-header">
+        <div class="header-title">
+            <i class="fas fa-clipboard-check"></i>
+            <h2>Stock Take Details</h2>
+        </div>
+        <div class="header-actions">
+            <a href="{% url 'stock_take_list' %}" class="header-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to List
+            </a>
+            {% if stock_take.status == 'in_progress' %}
+            <a href="{% url 'stock_take_update' pk=stock_take.pk %}" class="header-link">
+                <i class="fas fa-edit"></i>
+                Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card-body">
+        <div class="stock-take-info">
+            <div class="info-grid">
+                <div class="info-item">
+                    <label>Department</label>
+                    <span>{{ stock_take.department.name }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Date</label>
+                    <span>{{ stock_take.date }}</span>
+                </div>
+                <div class="info-item">
+                    <label>Status</label>
+                    <span class="status-badge status-{{ stock_take.status }}">
+                        {{ stock_take.get_status_display }}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <label>Created By</label>
+                    <span>{{ stock_take.created_by.get_full_name|default:stock_take.created_by.username }}</span>
+                </div>
+            </div>
+            {% if stock_take.notes %}
+            <div class="notes-section">
+                <label>Notes</label>
+                <p>{{ stock_take.notes }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if stock_take.status == 'in_progress' %}
+        <form method="post" class="stock-take-form">
+            {% csrf_token %}
+            
+            <!-- Barcode Scanner Input -->
+            <div class="barcode-scanner-section">
+                <div class="scanner-input-wrapper">
+                    <input type="text" 
+                           id="barcodeInput" 
+                           class="form-control scanner-input" 
+                           placeholder="Scan asset barcode..."
+                           autocomplete="off">
+                    <div class="scanner-status">
+                        <span id="scannerStatus" class="status-text">Ready to scan</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-responsive">
+                <table class="modern-table">
+                    <thead>
+                        <tr>
+                            <th>Asset Number</th>
+                            <th>Name</th>
+                            <th>Expected</th>
+                            <th>Actual</th>
+                            <th>Status</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr data-asset-no="{{ item.asset.asset_no }}">
+                            <td>{{ item.asset.asset_no }}</td>
+                            <td>{{ item.asset.name }}</td>
+                            <td>{{ item.expected_quantity }}</td>
+                            <td>
+                                <input type="number" 
+                                       name="quantity_{{ item.id }}" 
+                                       value="{{ item.actual_quantity }}"
+                                       min="0"
+                                       class="form-control quantity-input"
+                                       required>
+                            </td>
+                            <td class="scan-status">
+                                <span class="status-badge status-pending">Pending</span>
+                            </td>
+                            <td>
+                                <input type="text" 
+                                       name="notes_{{ item.id }}" 
+                                       value="{{ item.notes }}"
+                                       class="form-control"
+                                       placeholder="Add notes...">
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">Complete Stock Take</button>
+            </div>
+        </form>
+        {% else %}
+        <div class="table-responsive">
+            <table class="modern-table">
+                <thead>
+                    <tr>
+                        <th>Asset Number</th>
+                        <th>Name</th>
+                        <th>Expected</th>
+                        <th>Actual</th>
+                        <th>Status</th>
+                        <th>Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items %}
+                    <tr class="{% if item.actual_quantity != item.expected_quantity %}discrepancy{% endif %}">
+                        <td>{{ item.asset.asset_no }}</td>
+                        <td>{{ item.asset.name }}</td>
+                        <td>{{ item.expected_quantity }}</td>
+                        <td>{{ item.actual_quantity }}</td>
+                        <td>
+                            {% if item.actual_quantity == item.expected_quantity %}
+                            <span class="status-badge status-completed">Matched</span>
+                            {% else %}
+                            <span class="status-badge status-discrepancy">Discrepancy</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ item.notes|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    .stock-take-info {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .info-item label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+
+    .info-item span {
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .notes-section {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .notes-section label {
+        color: var(--text-muted);
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .notes-section p {
+        margin: 0;
+        color: var(--text-color);
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+    }
+
+    .quantity-input {
+        width: 80px;
+        text-align: center;
+    }
+
+    .form-actions {
+        margin-top: 2rem;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .discrepancy {
+        background-color: #fff3f3;
+    }
+
+    .status-badge {
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+    }
+
+    .status-in_progress {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .status-completed {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-discrepancy {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .barcode-scanner-section {
+        margin-bottom: 2rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+    }
+
+    .scanner-input-wrapper {
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    .scanner-input {
+        font-size: 1.2rem;
+        padding: 0.75rem 1rem;
+        text-align: center;
+        letter-spacing: 0.1em;
+    }
+
+    .scanner-status {
+        margin-top: 0.5rem;
+        text-align: center;
+    }
+
+    .status-text {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .status-text.success {
+        color: #2e7d32;
+    }
+
+    .status-text.error {
+        color: #c62828;
+    }
+
+    .status-badge.status-pending {
+        background: #f5f5f5;
+        color: #757575;
+    }
+
+    .status-badge.status-scanned {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .status-badge.status-error {
+        background: #ffebee;
+        color: #c62828;
+    }
+
+    .scan-status {
+        text-align: center;
+    }
+</style>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const barcodeInput = document.getElementById('barcodeInput');
+    const scannerStatus = document.getElementById('scannerStatus');
+    let scanTimeout;
+
+    barcodeInput.addEventListener('input', function(e) {
+        // Clear any existing timeout
+        clearTimeout(scanTimeout);
+        
+        // Set a new timeout to process the scan
+        scanTimeout = setTimeout(() => {
+            const scannedValue = e.target.value.trim();
+            if (scannedValue) {
+                processScan(scannedValue);
+                // Clear the input after processing
+                e.target.value = '';
+            }
+        }, 100); // Adjust timeout as needed for your scanner
+    });
+
+    function processScan(scannedValue) {
+        // Find the row with matching asset number
+        const row = document.querySelector(`tr[data-asset-no="${scannedValue}"]`);
+        
+        if (row) {
+            // Update the quantity input
+            const quantityInput = row.querySelector('.quantity-input');
+            quantityInput.value = parseInt(quantityInput.value) + 1;
+            
+            // Update the status badge
+            const statusCell = row.querySelector('.scan-status');
+            statusCell.innerHTML = '<span class="status-badge status-scanned">Scanned</span>';
+            
+            // Show success message
+            scannerStatus.textContent = 'Asset found and marked as present';
+            scannerStatus.className = 'status-text success';
+            
+            // Highlight the row briefly
+            row.style.backgroundColor = '#e8f5e9';
+            setTimeout(() => {
+                row.style.backgroundColor = '';
+            }, 1000);
+        } else {
+            // Show error message
+            scannerStatus.textContent = 'Asset not found in this stock take';
+            scannerStatus.className = 'status-text error';
+        }
+    }
+});
+</script>
+{% endblock %}
+{% endblock %} 
