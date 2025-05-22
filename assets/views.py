@@ -2,7 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
-from .models import Asset, AssetRequest
+from .models import Asset, AssetRequest, Department
 from .forms import AssetForm, AssetRequestForm
 from .decorators import admin_required
 from django.contrib.auth import login
@@ -13,14 +13,16 @@ from django.http import JsonResponse
 from django.http import HttpResponse
 from reportlab.pdfgen import canvas
 from reportlab.lib import colors
-from reportlab.lib.pagesizes import letter
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.pagesizes import letter, landscape
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, Image
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from django.db.models import Count
+from django.db.models import Count, Sum, Avg, F
+from django.db.models.functions import TruncMonth
 from io import BytesIO
 from datetime import datetime
 from django.db import transaction
 from django.db.utils import IntegrityError
+import os
 
 # landig page
 def landing_page(request):
@@ -266,38 +268,322 @@ def dashboard(request):
 
 @login_required
 def reports(request):
-    """View for generating reports"""
-    # Get summary statistics
-    total_assets = Asset.objects.count()
-    assets_by_category = Asset.objects.values('category').annotate(count=Count('category'))
-    assets_by_status = Asset.objects.values('status').annotate(count=Count('status'))
-    assets_by_department = Asset.objects.values('department__name').annotate(count=Count('department'))
-    pending_requests = AssetRequest.objects.filter(approved__isnull=True).count()
-    approved_requests = AssetRequest.objects.filter(approved=True).count()
-    rejected_requests = AssetRequest.objects.filter(approved=False).count()
+    # Get filter parameters
+    department = request.GET.get('department')
+    category = request.GET.get('category')
+    status = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+
+    # Base queryset
+    assets = Asset.objects.all()
+    requests = AssetRequest.objects.all()
+
+    # Apply filters
+    if department:
+        assets = assets.filter(department__name=department)
+        requests = requests.filter(asset__department__name=department)
+    
+    if category:
+        assets = assets.filter(category=category)
+        requests = requests.filter(asset__category=category)
+    
+    if status:
+        assets = assets.filter(status=status)
+        requests = requests.filter(asset__status=status)
+    
+    if start_date:
+        assets = assets.filter(purchase_date__gte=start_date)
+        requests = requests.filter(request_date__gte=start_date)
+    
+    if end_date:
+        assets = assets.filter(purchase_date__lte=end_date)
+        requests = requests.filter(request_date__lte=end_date)
+
+    # Calculate summary statistics
+    total_assets = assets.count()
+    total_value = assets.aggregate(total=Sum('purchase_cost'))['total'] or 0
+    utilization_rate = (assets.filter(status='in_use').count() / total_assets * 100) if total_assets > 0 else 0
+    avg_response_time = requests.filter(approved__isnull=False).aggregate(
+        avg_time=Avg(F('approval_date') - F('request_date'))
+    )['avg_time'] or 0
+
+    # Get filter options
+    departments = Department.objects.all()
+    categories = Asset.CATEGORY_CHOICES
+    statuses = Asset.STATUS_CHOICES
+
+    # Current filters for template
+    current_filters = {
+        'department': department,
+        'category': category,
+        'status': status,
+        'start_date': start_date,
+        'end_date': end_date
+    }
 
     context = {
+        'assets': assets,
         'total_assets': total_assets,
-        'assets_by_category': assets_by_category,
-        'assets_by_status': assets_by_status,
-        'assets_by_department': assets_by_department,
-        'pending_requests': pending_requests,
-        'approved_requests': approved_requests,
-        'rejected_requests': rejected_requests,
+        'total_value': total_value,
+        'utilization_rate': round(utilization_rate, 1),
+        'avg_response_time': round(avg_response_time.days if avg_response_time else 0, 1),
+        'departments': departments,
+        'categories': categories,
+        'statuses': statuses,
+        'current_filters': current_filters
     }
+
     return render(request, 'assets/reports.html', context)
 
 @login_required
 def download_report(request):
-    """Generate and download PDF report"""
+    """Generate and download report in various formats"""
+    format_type = request.GET.get('format', 'pdf')
+    report_type = request.GET.get('type', 'all')
+    
+    # Get all filter parameters
+    department = request.GET.get('department')
+    category = request.GET.get('category')
+    status = request.GET.get('status')
+    start_date = request.GET.get('start_date')
+    end_date = request.GET.get('end_date')
+    
+    # Base queryset
+    assets = Asset.objects.all()
+    
+    # Apply all filters
+    if department:
+        assets = assets.filter(department__name=department)
+    if category:
+        assets = assets.filter(category=category)
+    if status:
+        assets = assets.filter(status=status)
+    if start_date:
+        assets = assets.filter(purchase_date__gte=start_date)
+    if end_date:
+        assets = assets.filter(purchase_date__lte=end_date)
+    
+    # Calculate summary statistics
+    total_assets = assets.count()
+    total_value = assets.aggregate(total=Sum('purchase_cost'))['total'] or 0
+    utilization_rate = (assets.filter(status='in_use').count() / total_assets * 100) if total_assets > 0 else 0
+    
+    # Prepare the data for export
+    export_data = {
+        'title': 'Asset Management Report',
+        'summary': {
+            'total_assets': total_assets,
+            'total_value': total_value,
+            'utilization_rate': round(utilization_rate, 1)
+        },
+        'assets': assets,
+        'filters': {
+            'department': department,
+            'category': category,
+            'status': status,
+            'start_date': start_date,
+            'end_date': end_date
+        }
+    }
+    
+    if format_type == 'csv':
+        return generate_csv_report(request, export_data)
+    elif format_type == 'excel':
+        return generate_excel_report(request, export_data)
+    else:
+        return generate_pdf_report(request, export_data)
+
+def generate_csv_report(request, data):
+    """Generate CSV report"""
+    import csv
+    from django.http import HttpResponse
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="asset_report_{datetime.now().strftime("%Y%m%d")}.csv"'
+    
+    writer = csv.writer(response)
+    
+    # Write title and generation date
+    writer.writerow([data['title']])
+    writer.writerow(['Generated on: ' + datetime.now().strftime('%B %d, %Y')])
+    writer.writerow([])
+    
+    # Write summary statistics
+    writer.writerow(['Summary Statistics'])
+    writer.writerow(['Total Assets', data['summary']['total_assets']])
+    writer.writerow(['Total Value', f"${data['summary']['total_value']:.2f}"])
+    writer.writerow(['Utilization Rate', f"{data['summary']['utilization_rate']}%"])
+    writer.writerow([])
+    
+    # Write active filters
+    writer.writerow(['Active Filters'])
+    filters = data['filters']
+    if any(filters.values()):
+        for key, value in filters.items():
+            if value:
+                writer.writerow([key.replace('_', ' ').title(), value])
+    else:
+        writer.writerow(['No filters applied'])
+    writer.writerow([])
+    
+    # Write asset details
+    writer.writerow(['Asset Details'])
+    writer.writerow(['Asset No', 'Serial No', 'Category', 'Department', 'Status', 'Purchase Date', 'Purchase Cost', 'Assigned To'])
+    
+    for asset in data['assets']:
+        writer.writerow([
+            asset.asset_no,
+            asset.serial_no,
+            asset.get_category_display(),
+            asset.department.name,
+            asset.get_status_display(),
+            asset.purchase_date.strftime('%B %d, %Y') if asset.purchase_date else 'Not Set',
+            f"${asset.purchase_cost:.2f}" if asset.purchase_cost else 'Not Set',
+            asset.assigned_to.get_full_name() if asset.assigned_to else 'Not Assigned'
+        ])
+    
+    return response
+
+def generate_excel_report(request, data):
+    """Generate Excel report"""
+    import xlsxwriter
+    from io import BytesIO
+    
+    output = BytesIO()
+    workbook = xlsxwriter.Workbook(output)
+    worksheet = workbook.add_worksheet()
+    
+    # Add formatting
+    title_format = workbook.add_format({
+        'bold': True,
+        'font_size': 12,
+        'align': 'center'
+    })
+    header_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#005B4F',
+        'font_color': 'white',
+        'border': 1,
+        'align': 'center',
+        'valign': 'vcenter',
+        'text_wrap': True
+    })
+    summary_format = workbook.add_format({
+        'bold': True,
+        'bg_color': '#e8f5e9',
+        'border': 1,
+        'align': 'left',
+        'valign': 'vcenter',
+        'text_wrap': True
+    })
+    cell_format = workbook.add_format({
+        'border': 1,
+        'align': 'left',
+        'valign': 'vcenter',
+        'text_wrap': True,
+        'font_size': 9
+    })
+    currency_format = workbook.add_format({
+        'border': 1,
+        'align': 'right',
+        'valign': 'vcenter',
+        'num_format': '$#,##0.00',
+        'font_size': 9
+    })
+    
+    # Set row height for better spacing
+    worksheet.set_default_row(20)
+    
+    # Write title
+    worksheet.merge_range('A1:H1', data['title'], title_format)
+    worksheet.write('A2', 'Generated on: ' + datetime.now().strftime('%B %d, %Y'))
+    worksheet.write('A4', '')
+    
+    # Write summary statistics
+    worksheet.write('A5', 'Summary Statistics', summary_format)
+    worksheet.write('A6', 'Total Assets', cell_format)
+    worksheet.write('B6', data['summary']['total_assets'], cell_format)
+    worksheet.write('A7', 'Total Value', cell_format)
+    worksheet.write('B7', data['summary']['total_value'], currency_format)
+    worksheet.write('A8', 'Utilization Rate', cell_format)
+    worksheet.write('B8', f"{data['summary']['utilization_rate']}%", cell_format)
+    worksheet.write('A10', '')
+    
+    # Write active filters
+    worksheet.write('A11', 'Active Filters', summary_format)
+    row = 12
+    filters = data['filters']
+    if any(filters.values()):
+        for key, value in filters.items():
+            if value:
+                worksheet.write(f'A{row}', key.replace('_', ' ').title(), cell_format)
+                worksheet.write(f'B{row}', value, cell_format)
+                row += 1
+    else:
+        worksheet.write(f'A{row}', 'No filters applied', cell_format)
+    row += 2
+    
+    # Write asset details
+    worksheet.write(f'A{row}', 'Asset Details', summary_format)
+    row += 1
+    
+    # Write headers
+    headers = ['Asset No', 'Serial No', 'Category', 'Department', 'Status', 'Purchase Date', 'Purchase Cost', 'Assigned To']
+    for col, header in enumerate(headers):
+        worksheet.write(row, col, header, header_format)
+    row += 1
+    
+    # Write asset data
+    for asset in data['assets']:
+        worksheet.write(row, 0, asset.asset_no, cell_format)
+        worksheet.write(row, 1, asset.serial_no, cell_format)
+        worksheet.write(row, 2, asset.get_category_display(), cell_format)
+        worksheet.write(row, 3, asset.department.name, cell_format)
+        worksheet.write(row, 4, asset.get_status_display(), cell_format)
+        worksheet.write(row, 5, asset.purchase_date.strftime('%B %d, %Y') if asset.purchase_date else 'Not Set', cell_format)
+        worksheet.write(row, 6, asset.purchase_cost if asset.purchase_cost else 'Not Set', currency_format if asset.purchase_cost else cell_format)
+        worksheet.write(row, 7, asset.assigned_to.get_full_name() if asset.assigned_to else 'Not Assigned', cell_format)
+        row += 1
+    
+    # Adjust column widths
+    worksheet.set_column('A:A', 15)  # Asset No
+    worksheet.set_column('B:B', 20)  # Serial No
+    worksheet.set_column('C:C', 20)  # Category
+    worksheet.set_column('D:D', 20)  # Department
+    worksheet.set_column('E:E', 15)  # Status
+    worksheet.set_column('F:F', 15)  # Purchase Date
+    worksheet.set_column('G:G', 15)  # Purchase Cost
+    worksheet.set_column('H:H', 25)  # Assigned To
+    
+    # Add filters
+    worksheet.autofilter(f'A{row-len(data["assets"])-1}:H{row-1}')
+    
+    # Freeze the header row
+    worksheet.freeze_panes(row - len(data['assets']), 0)
+    
+    workbook.close()
+    output.seek(0)
+    
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="asset_report_{datetime.now().strftime("%Y%m%d")}.xlsx"'
+    
+    return response
+
+def generate_pdf_report(request, data):
+    """Generate PDF report"""
     buffer = BytesIO()
-    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    # Use landscape orientation for better data display
+    doc = SimpleDocTemplate(buffer, pagesize=landscape(letter), rightMargin=20, leftMargin=20, topMargin=20, bottomMargin=20)
     
     # Container for the 'Flowable' objects
     elements = []
     
     # Define colors to match website theme
-    primary_color = colors.HexColor('#00c853')  # Your website's green
+    primary_color = colors.HexColor('#005B4F')  # Your website's green
     text_color = colors.HexColor('#2c3e50')
     text_muted = colors.HexColor('#90a4ae')
     border_color = colors.HexColor('#e0e0e0')
@@ -310,9 +596,9 @@ def download_report(request):
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=24,
+        fontSize=18,
         textColor=text_color,
-        spaceAfter=30,
+        spaceAfter=15,
         alignment=1  # Center alignment
     )
     
@@ -320,10 +606,10 @@ def download_report(request):
     heading_style = ParagraphStyle(
         'CustomHeading',
         parent=styles['Heading2'],
-        fontSize=16,
+        fontSize=12,
         textColor=primary_color,
-        spaceBefore=20,
-        spaceAfter=15
+        spaceBefore=12,
+        spaceAfter=8
     )
     
     # Normal text style
@@ -331,107 +617,118 @@ def download_report(request):
         'CustomNormal',
         parent=styles['Normal'],
         textColor=text_color,
-        fontSize=10,
-        spaceBefore=10,
-        spaceAfter=10
+        fontSize=8,
+        spaceBefore=6,
+        spaceAfter=6
     )
+
+    # Add logo
+    logo_path = os.path.join(settings.STATIC_ROOT, 'img', 'konza.png')
+    if os.path.exists(logo_path):
+        img = Image(logo_path, width=60, height=30)
+        elements.append(img)
+        elements.append(Spacer(1, 10))
     
-    # Add logo and title
-    elements.append(Paragraph("GridSet", title_style))
-    elements.append(Paragraph("Asset Management Report", heading_style))
+    # Add title and generation date
+    elements.append(Paragraph(data['title'], title_style))
     elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", normal_style))
-    elements.append(Spacer(1, 20))
+    elements.append(Spacer(1, 10))
     
-    # Asset Summary
-    elements.append(Paragraph("Asset Distribution", heading_style))
+    # Add summary statistics
+    elements.append(Paragraph("Summary Statistics", heading_style))
+    summary_data = [
+        ['Total Assets', str(data['summary']['total_assets'])],
+        ['Total Value', f"${data['summary']['total_value']:.2f}"],
+        ['Utilization Rate', f"{data['summary']['utilization_rate']}%"]
+    ]
     
-    # Assets by Category
-    categories = Asset.objects.values('category').annotate(count=Count('category'))
-    category_data = [['Category', 'Count']]
-    for cat in categories:
-        category_data.append([dict(Asset.CATEGORY_CHOICES)[cat['category']], cat['count']])
+    summary_table = Table(summary_data, colWidths=[150, 100])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, border_color),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(summary_table)
+    elements.append(Spacer(1, 10))
     
-    category_table = Table(category_data, colWidths=[300, 100])
-    category_table.setStyle(TableStyle([
-        # Header style
+    # Add active filters
+    elements.append(Paragraph("Active Filters", heading_style))
+    filters = data['filters']
+    if any(filters.values()):
+        filter_data = [[key.replace('_', ' ').title(), value] for key, value in filters.items() if value]
+    else:
+        filter_data = [['No filters applied', '']]
+    
+    filter_table = Table(filter_data, colWidths=[150, 100])
+    filter_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 0), (-1, -1), text_color),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, border_color),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+        ('TOPPADDING', (0, 0), (-1, -1), 4),
+    ]))
+    elements.append(filter_table)
+    elements.append(Spacer(1, 10))
+    
+    # Add asset details
+    elements.append(Paragraph("Asset Details", heading_style))
+    
+    # Prepare table data
+    table_data = [['Asset No', 'Serial No', 'Category', 'Department', 'Status', 'Purchase Date', 'Purchase Cost', 'Assigned To']]
+    for asset in data['assets']:
+        table_data.append([
+            asset.asset_no,
+            asset.serial_no,
+            asset.get_category_display(),
+            asset.department.name,
+            asset.get_status_display(),
+            asset.purchase_date.strftime('%B %d, %Y') if asset.purchase_date else 'Not Set',
+            f"${asset.purchase_cost:.2f}" if asset.purchase_cost else 'Not Set',
+            asset.assigned_to.get_full_name() if asset.assigned_to else 'Not Assigned'
+        ])
+    
+    # Calculate column widths based on page width (landscape)
+    page_width = letter[1] - 40  # Subtract margins (using height since we're in landscape)
+    col_widths = [
+        page_width * 0.10,  # Asset No
+        page_width * 0.12,  # Serial No
+        page_width * 0.15,  # Category
+        page_width * 0.15,  # Department
+        page_width * 0.10,  # Status
+        page_width * 0.12,  # Purchase Date
+        page_width * 0.10,  # Purchase Cost
+        page_width * 0.16   # Assigned To
+    ]
+    
+    table = Table(table_data, colWidths=col_widths, repeatRows=1)
+    
+    # Style the table
+    table.setStyle(TableStyle([
         ('BACKGROUND', (0, 0), (-1, 0), primary_color),
         ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
         ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
         ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
+        ('FONTSIZE', (0, 0), (-1, 0), 8),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 6),
         ('BACKGROUND', (0, 1), (-1, -1), colors.white),
         ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),  # Center align the count column
         ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('FONTSIZE', (0, 1), (-1, -1), 7),
         ('GRID', (0, 0), (-1, -1), 1, border_color),
         ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
+        ('BOTTOMPADDING', (0, 1), (-1, -1), 4),
+        ('TOPPADDING', (0, 1), (-1, -1), 4),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
     ]))
-    elements.append(category_table)
-    elements.append(Spacer(1, 20))
-    
-    # Assets by Status
-    elements.append(Paragraph("Status Distribution", heading_style))
-    status_data = [['Status', 'Count']]
-    statuses = Asset.objects.values('status').annotate(count=Count('status'))
-    for status in statuses:
-        status_data.append([dict(Asset.STATUS_CHOICES)[status['status']], status['count']])
-    
-    status_table = Table(status_data, colWidths=[300, 100])
-    status_table.setStyle(TableStyle([
-        # Header style
-        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, border_color),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-    ]))
-    elements.append(status_table)
-    elements.append(Spacer(1, 20))
-    
-    # Department Distribution
-    elements.append(Paragraph("Department Distribution", heading_style))
-    dept_data = [['Department', 'Count']]
-    departments = Asset.objects.values('department__name').annotate(count=Count('department'))
-    for dept in departments:
-        dept_data.append([dept['department__name'], dept['count']])
-    
-    dept_table = Table(dept_data, colWidths=[300, 100])
-    dept_table.setStyle(TableStyle([
-        # Header style
-        ('BACKGROUND', (0, 0), (-1, 0), primary_color),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
-        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('FONTSIZE', (0, 0), (-1, 0), 12),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        # Data rows
-        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-        ('TEXTCOLOR', (0, 1), (-1, -1), text_color),
-        ('ALIGN', (-1, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
-        ('FONTSIZE', (0, 1), (-1, -1), 10),
-        ('GRID', (0, 0), (-1, -1), 1, border_color),
-        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, light_bg]),
-        ('BOTTOMPADDING', (0, 1), (-1, -1), 8),
-        ('TOPPADDING', (0, 1), (-1, -1), 8),
-    ]))
-    elements.append(dept_table)
+    elements.append(table)
     
     # Build PDF
     doc.build(elements)
