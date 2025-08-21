@@ -49,8 +49,6 @@ ASM is a modern, web-based asset management system built with Django that helps 
 - Success notifications
 - Mobile-friendly interface
 
-  ![asset](https://github.com/user-attachments/assets/a6cb840a-7406-4b62-99b7-950e15ce3e34)
-
 
 ## Technology Stack
 
@@ -186,9 +184,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - ReportLab for PDF generation
 - Django community for the amazing framework
 
-## Screenshots
 
-(Add screenshots of key features here)
 
 ## Future Enhancements
 
