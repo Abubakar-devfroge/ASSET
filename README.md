@@ -1,6 +1,6 @@
-# GridSet - Asset Management System
+# ASM - Asset Management System
 
-GridSet is a modern, web-based asset management system built with Django that helps organizations track and manage their assets efficiently.
+ASM is a modern, web-based asset management system built with Django that helps organizations track and manage their assets efficiently.
 
 ## Features
 
@@ -30,8 +30,6 @@ GridSet is a modern, web-based asset management system built with Django that he
 - Distribution by category, status, and department
 - Request summary statistics
 - Visual data representation
-![report](https://github.com/user-attachments/assets/bd36a3da-c2af-4268-a9fd-4dcaf0b8b026)
-
 
 
 ### Dashboard
@@ -41,7 +39,7 @@ GridSet is a modern, web-based asset management system built with Django that he
 - Quick access to key functions
 - Status indicators
 
-![dashboard](https://github.com/user-attachments/assets/8e8edef0-f359-4d8f-b5e3-fa0a8610c929)
+
 
 ### Modern UI/UX
 - Clean, responsive design
@@ -69,8 +67,8 @@ GridSet is a modern, web-based asset management system built with Django that he
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/yourusername/gridset.git
-cd gridset          
+git clone https://github.com/Abubakar-devfroge/ASSET.git
+cd asset_management_system        
 ```
 2. Create and activate virtual environment:
 ```bash
@@ -83,15 +81,15 @@ pip install -r requirements.txt
 ```
 4. Run migrations:
 ```bash
-python manage.py migrate
+python3 manage.py migrate
 ```
 5. Create test users:
 ```bash
-python manage.py createsuperuser
+python3 manage.py createsuperuser
 ```
 6. Run the development server:
 ```bash
-python manage.py runserver
+python3 manage.py runserver
 ```
 
 ## Default Users
@@ -168,13 +166,7 @@ manage.py
 - `/reports/` - Generate reports
 - `/reports/download/` - Download PDF reports
 
-## Contributing
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
 
 ## Requirements
 
@@ -186,15 +178,6 @@ manage.py
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Authors
-
-- Prince Gabriel - Initial work and maintenance
-
-## Support
-
-For support:
-- Create an issue in the repository
-- Email: princeafrim1@gmail.com
 
 ## Acknowledgments
 
