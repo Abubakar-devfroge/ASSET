@@ -70,7 +70,7 @@
                 <th>Description</th>
                 <th>Category</th>
                 <th>Department</th>
-                <th>Assigned To</th>
+                <th>Custodian</th>
                 <th>Actions</th>
             </tr>
         </thead>
@@ -171,13 +171,13 @@ function applyFilters() {
     } else {
         params.delete('status');
     }
-    
+
     // Keep search query if it exists
     if (searchInput && searchInput.value) {
         params.set('q', searchInput.value);
     }
     
-    // Redirect to filtered URL
+
     window.location.href = `${url.pathname}?${params.toString()}`;
 }
 

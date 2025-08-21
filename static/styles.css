@@ -1,6 +1,6 @@
 
 :root {
-    --primary-color: #005B4F;
+    --primary-color: #00c853;
     --primary-light: #e8f5e9;
     --secondary-color: #3f3d56;
     --success-color: #00c853;
@@ -18,10 +18,11 @@
 
 /* Global Styles */
 body {
-font-family: "Segoe UI", Arial, sans-serif; 
+    font-family: "Segoe UI", Arial, sans-serif;
     background-color: var(--background-color);
     color: var(--text-color);
     line-height: 1.5;
+    font-size: 15px;
 }
 
 /* Layout */
@@ -162,11 +163,11 @@ font-family: "Segoe UI", Arial, sans-serif;
 
 .search-input {
     width: 100%;
-    padding: 0.75rem 2.5rem;
+    padding: 0.5rem 2.5rem;
     border: 1px solid var(--border-color);
     border-radius: 10px;
     background: #f8f9fa;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     transition: all 0.2s ease;
 }
 
@@ -529,12 +530,14 @@ font-family: "Segoe UI", Arial, sans-serif;
 /* Add these to ensure consistent font usage */
 input, select, textarea, button {
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-size: 1em;
 }
 
 /* Adjust heading styles for Montserrat */
 h1, h2, h3, h4, h5, h6 {
     font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
     font-weight: 600;
+    line-height: 1.2;
 }
 
 /* Asset Detail View Styles */

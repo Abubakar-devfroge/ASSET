@@ -56,25 +56,24 @@
       </div>
     </div>
 
-        <!-- Right Panel (Image & Branding) -->
-    <!-- Right Panel (Image & Branding) -->
+       <!-- side ya right -->
     <div class="hidden md:flex w-full md:w-1/2 bg-gradient-to-br from-[#e0e7ff] to-[#f7f9fa] text-gray-900 flex-col justify-between p-10">
       <div>
-        <a href="/" title="Back to Home"><img src="{% static 'images/gridlogo.png' %}" alt="Logo" class="h-10 mb-10 rounded-full shadow-md"></a>
+        <a href="/" title="Back to Home"><img src="{% static '/img/konza.png' %}" alt="Logo" class="h-10 mb-10 rounded-full shadow-md"></a>
         <h2 class="text-3xl md:text-4xl font-bold section-title leading-snug">Empower Your Enterprise Asset Management</h2>
         <p class="text-base text-gray-700 mt-4 max-w-sm">
           Modern, scalable, and intuitive platform for managing assets, requests, and workflows. Built for teams, trusted by enterprises.
         </p>
       </div>
       <div class="pt-10 flex justify-center">
-        <img src="{% static 'images/enterprise-hero.svg' %}" alt="Enterprise" class="rounded-xl object-cover w-full max-w-xs shadow-xl">
+        <img src="{% static '/img/konza.png' %}" alt="Enterprise" class="rounded-xl object-cover w-full max-w-xs shadow-xl">
       </div>
     </div>
   </div>
 </div>
 
 <script>
-// Auto-dismiss error message after 5 seconds
+
 setTimeout(() => {
     const errBox = document.getElementById('authError');
     if (errBox) {

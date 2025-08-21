@@ -24,10 +24,10 @@ from django.db import transaction
 from django.db.utils import IntegrityError
 import os
 
-# landig page
+# landing page
 def landing_page(request):
-    """Public landing page view for GridSet."""
-    return render(request, 'index.html')
+    """Redirect to login page as the first page."""
+    return redirect('login')
 
 
 @login_required
